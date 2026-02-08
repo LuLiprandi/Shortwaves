@@ -14,7 +14,6 @@ public class InteractionSystem : MonoBehaviour
     private Camera playerCamera;
     private PlayerInputActions inputActions;
     private IInteractable currentInteractable;
-    private Ray ray;
     private RaycastHit hitInfo;
     private Transform cameraTransform;
     private bool wasShowingPrompt;
@@ -25,16 +24,9 @@ public class InteractionSystem : MonoBehaviour
         cameraTransform = playerCamera.transform;
         inputActions = new PlayerInputActions();
 
-        Debug.Log("InteractionSystem: Initialized");
-
         if (interactionPrompt != null)
         {
             interactionPrompt.gameObject.SetActive(false);
-            Debug.Log("InteractionSystem: Prompt UI found and hidden");
-        }
-        else
-        {
-            Debug.LogError("InteractionSystem: Interaction Prompt is NULL!");
         }
     }
 
@@ -42,7 +34,6 @@ public class InteractionSystem : MonoBehaviour
     {
         inputActions.Player.Enable();
         inputActions.Player.Interact.performed += OnInteract;
-        Debug.Log("InteractionSystem: Input actions enabled");
     }
 
     private void OnDisable()
@@ -58,32 +49,20 @@ public class InteractionSystem : MonoBehaviour
 
     private void CheckForInteractable()
     {
-        ray.origin = cameraTransform.position;
-        ray.direction = cameraTransform.forward;
-
-        Debug.DrawRay(ray.origin, ray.direction * interactionDistance, Color.green);
+        Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
 
         if (Physics.Raycast(ray, out hitInfo, interactionDistance, interactionLayer))
         {
-            Debug.Log($"Raycast HIT: {hitInfo.collider.name} on layer '{LayerMask.LayerToName(hitInfo.collider.gameObject.layer)}' at distance {hitInfo.distance}m");
-
             IInteractable interactable = hitInfo.collider.GetComponent<IInteractable>();
 
             if (interactable != null)
             {
-                Debug.Log($"Found IInteractable! Message: '{interactable.PromptMessage}'");
-
                 if (currentInteractable != interactable)
                 {
                     currentInteractable = interactable;
                     UpdatePrompt(true, interactable.PromptMessage);
-                    Debug.Log("Prompt shown");
                 }
                 return;
-            }
-            else
-            {
-                Debug.LogWarning($"Object '{hitInfo.collider.name}' has NO IInteractable component!");
             }
         }
 
@@ -112,16 +91,9 @@ public class InteractionSystem : MonoBehaviour
 
     private void OnInteract(InputAction.CallbackContext context)
     {
-        Debug.Log("E key pressed!");
-
         if (currentInteractable != null)
         {
-            Debug.Log($"Interacting with: {currentInteractable.PromptMessage}");
             currentInteractable.Interact();
-        }
-        else
-        {
-            Debug.Log("No interactable object in range");
         }
     }
 }
