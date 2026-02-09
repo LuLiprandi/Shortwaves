@@ -20,6 +20,8 @@ public class FirstPersonController : MonoBehaviour
 
     private const float GRAVITY = -9.81f;
 
+    public bool CanMove { get; set; } = true;
+
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
@@ -75,6 +77,16 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleMovement()
     {
+        if (!characterController.enabled) return;
+
+        if (!CanMove)
+        {
+            moveDirection.y = GRAVITY;
+            Vector3 gravityMove = new Vector3(0, moveDirection.y, 0);
+            characterController.Move(gravityMove * Time.deltaTime);
+            return;
+        }
+
         float deltaTime = Time.deltaTime;
 
         moveDirection.x = moveInput.x;
