@@ -14,6 +14,7 @@ public class InteractionSystem : MonoBehaviour
     private Camera playerCamera;
     private PlayerInputActions inputActions;
     private IInteractable currentInteractable;
+    private OutlineEffect currentOutline;
     private RaycastHit hitInfo;
     private Transform cameraTransform;
     private bool wasShowingPrompt;
@@ -59,8 +60,17 @@ public class InteractionSystem : MonoBehaviour
             {
                 if (currentInteractable != interactable)
                 {
+                    DisableCurrentOutline();
+
                     currentInteractable = interactable;
                     UpdatePrompt(true, interactable.PromptMessage);
+
+                    OutlineEffect outline = hitInfo.collider.GetComponent<OutlineEffect>();
+                    if (outline != null)
+                    {
+                        outline.EnableOutline();
+                        currentOutline = outline;
+                    }
                 }
                 return;
             }
@@ -68,8 +78,18 @@ public class InteractionSystem : MonoBehaviour
 
         if (currentInteractable != null)
         {
+            DisableCurrentOutline();
             currentInteractable = null;
             UpdatePrompt(false, string.Empty);
+        }
+    }
+
+    private void DisableCurrentOutline()
+    {
+        if (currentOutline != null)
+        {
+            currentOutline.DisableOutline();
+            currentOutline = null;
         }
     }
 
