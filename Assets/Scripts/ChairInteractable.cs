@@ -5,141 +5,110 @@ using UnityEngine.InputSystem;
 public class ChairInteractable : MonoBehaviour, IInteractable
 {
     [Header("Settings")]
-    [SerializeField] private string promptText = "Appuyer sur [E] pour s'asseoir";
-    [SerializeField] private Transform sitPosition;
-    [SerializeField] private float sitHeight = 0.5f;
-    [SerializeField] private float sitDuration = 0.5f;
+    [SerializeField] private string sitPrompt = "Appuyer sur [E] pour s'asseoir";
+    [SerializeField] private float sitDuration = 0.6f;
     [SerializeField] private Vector3 exitOffset = new Vector3(0.8f, 0f, 0f);
+
+    [Header("Seated Anchor")]
+    [Tooltip("Positionner au sol devant le bureau, orienté face au bureau. La caméra sera 1.4 unités au-dessus.")]
+    [SerializeField] private Transform seatedAnchor;
 
     private FirstPersonController playerController;
     private CharacterController playerCharacterController;
-    private Transform playerTransform;
-    private Camera playerCamera;
-    private PlayerInputActions inputActions;
+    private Transform playerRoot;
+
+    private Vector3 originalRootPosition;
+    private Quaternion originalRootRotation;
+
     private bool isSitting = false;
     private bool isAnimating = false;
 
-    public string PromptMessage => isSitting ? "Appuyer sur [Échap] pour se lever" : promptText;
+    public bool IsSitting => isSitting;
+    public string PromptMessage => isSitting ? "" : sitPrompt;
 
-    private void Awake()
+    private void Start()
     {
-        if (sitPosition == null)
-        {
-            GameObject sitPosObj = new GameObject("SitPosition");
-            sitPosObj.transform.SetParent(transform);
-            sitPosObj.transform.localPosition = new Vector3(0, sitHeight, 0);
-            sitPosition = sitPosObj.transform;
-        }
+        ResolvePlayerReferences();
     }
 
     private void Update()
     {
         if (isSitting && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
             StandUp();
-        }
     }
 
+    /// <summary>Moves the player root to the seated anchor and enables seated mode.</summary>
     public void Interact()
     {
-        if (isAnimating) return;
-        if (isSitting) return;
+        if (isAnimating || isSitting) return;
 
-        if (playerController == null)
-        {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player == null)
-            {
-                player = FindFirstObjectByType<FirstPersonController>()?.gameObject;
-            }
-
-            if (player != null)
-            {
-                playerController = player.GetComponent<FirstPersonController>();
-                playerCharacterController = player.GetComponent<CharacterController>();
-                playerTransform = player.transform;
-                playerCamera = player.GetComponentInChildren<Camera>();
-                inputActions = new PlayerInputActions();
-            }
-        }
-
-        SitDown();
-    }
-
-    private void SitDown()
-    {
-        if (playerController == null) return;
-
-        StartCoroutine(SitDownAnimation());
+        StartCoroutine(SitDownRoutine());
     }
 
     private void StandUp()
     {
         if (playerController == null) return;
 
-        if (playerCharacterController != null)
-        {
-            playerCharacterController.enabled = false;
-        }
-
-        Vector3 exitPosition = sitPosition.position + sitPosition.TransformDirection(exitOffset);
-        playerTransform.position = exitPosition;
+        playerRoot.position = originalRootPosition;
+        playerRoot.rotation = originalRootRotation;
 
         if (playerCharacterController != null)
-        {
             playerCharacterController.enabled = true;
-        }
 
+        playerController.SetSeatedMode(false);
         playerController.CanMove = true;
         isSitting = false;
     }
 
-    private IEnumerator SitDownAnimation()
+    private IEnumerator SitDownRoutine()
     {
+        if (seatedAnchor == null)
+        {
+            Debug.LogWarning("ChairInteractable: SeatedAnchor non assigné.", this);
+            yield break;
+        }
+
         isAnimating = true;
         playerController.CanMove = false;
 
-        Vector3 startPosition = playerTransform.position;
-        Quaternion startRotation = playerTransform.rotation;
-        Quaternion startCameraRotation = playerCamera.transform.localRotation;
+        if (playerCharacterController != null)
+            playerCharacterController.enabled = false;
 
-        Vector3 targetPosition = sitPosition.position;
-        Quaternion targetRotation = sitPosition.rotation;
+        originalRootPosition = playerRoot.position;
+        originalRootRotation = playerRoot.rotation;
 
-        float elapsedTime = 0f;
+        Vector3 targetPosition = seatedAnchor.position;
+        Quaternion targetRotation = Quaternion.Euler(0f, seatedAnchor.eulerAngles.y, 0f);
 
-        while (elapsedTime < sitDuration)
+        float elapsed = 0f;
+
+        while (elapsed < sitDuration)
         {
-            if (playerCharacterController != null && playerCharacterController.enabled)
-            {
-                playerCharacterController.enabled = false;
-            }
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / sitDuration);
 
-            elapsedTime += Time.deltaTime;
-            float t = elapsedTime / sitDuration;
-
-            t = Mathf.SmoothStep(0f, 1f, t);
-
-            playerTransform.position = Vector3.Lerp(startPosition, targetPosition, t);
-            playerTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
+            playerRoot.position = Vector3.Lerp(originalRootPosition, targetPosition, t);
+            playerRoot.rotation = Quaternion.Slerp(originalRootRotation, targetRotation, t);
 
             yield return null;
         }
 
-        playerTransform.position = targetPosition;
-        playerTransform.rotation = targetRotation;
+        playerRoot.position = targetPosition;
+        playerRoot.rotation = targetRotation;
 
-        if (playerCharacterController != null)
-        {
-            playerCharacterController.enabled = true;
-        }
-
+        // CharacterController reste désactivé pendant toute la session assise
+        playerController.SetSeatedMode(true);
         isSitting = true;
         isAnimating = false;
     }
 
-    private void OnDestroy()
+    private void ResolvePlayerReferences()
     {
-        inputActions?.Dispose();
+        FirstPersonController found = FindFirstObjectByType<FirstPersonController>();
+        if (found == null) return;
+
+        playerController = found;
+        playerCharacterController = found.GetComponent<CharacterController>();
+        playerRoot = found.transform.root;
     }
 }

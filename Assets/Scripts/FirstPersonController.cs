@@ -11,6 +11,14 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private Transform playerCamera;
     [SerializeField] private float maxLookAngle = 90f;
 
+    [Header("Paramètres assis")]
+    [SerializeField] private float seatedHorizontalLimit = 60f;
+    [SerializeField] private float seatedVerticalMin = 5f;
+    [SerializeField] private float seatedVerticalMax = 85f;
+    [SerializeField] private float seatedInitialAngle = 30f;
+    [SerializeField] private float seatedFOV = 45f;
+    [SerializeField] private float fovLerpSpeed = 3f;
+
     private CharacterController characterController;
     private PlayerInputActions inputActions;
     private Vector2 moveInput;
@@ -18,9 +26,17 @@ public class FirstPersonController : MonoBehaviour
     private float verticalRotation;
     private Vector3 moveDirection;
 
+    private bool isSeated = false;
+    private float seatedCenterYRotation;
+
+    private Camera playerCameraComponent;
+    private float defaultFOV;
+    private float targetFOV;
+
     private const float GRAVITY = -9.81f;
 
     public bool CanMove { get; set; } = true;
+    public bool IsSeated => isSeated;
 
     private void Awake()
     {
@@ -31,9 +47,11 @@ public class FirstPersonController : MonoBehaviour
         Cursor.visible = false;
 
         if (playerCamera == null)
-        {
             playerCamera = GetComponentInChildren<Camera>().transform;
-        }
+
+        playerCameraComponent = playerCamera.GetComponent<Camera>();
+        defaultFOV = playerCameraComponent.fieldOfView;
+        targetFOV = defaultFOV;
     }
 
     private void OnEnable()
@@ -59,20 +77,17 @@ public class FirstPersonController : MonoBehaviour
         playerActionMap.Disable();
     }
 
-    private void OnMove(InputAction.CallbackContext context)
-    {
+    private void OnMove(InputAction.CallbackContext context) =>
         moveInput = context.ReadValue<Vector2>();
-    }
 
-    private void OnLook(InputAction.CallbackContext context)
-    {
+    private void OnLook(InputAction.CallbackContext context) =>
         lookInput = context.ReadValue<Vector2>();
-    }
 
     private void Update()
     {
         HandleMovement();
         HandleRotation();
+        HandleFOV();
     }
 
     private void HandleMovement()
@@ -82,26 +97,28 @@ public class FirstPersonController : MonoBehaviour
         if (!CanMove)
         {
             moveDirection.y = GRAVITY;
-            Vector3 gravityMove = new Vector3(0, moveDirection.y, 0);
-            characterController.Move(gravityMove * Time.deltaTime);
+            characterController.Move(new Vector3(0, moveDirection.y, 0) * Time.deltaTime);
             return;
         }
-
-        float deltaTime = Time.deltaTime;
 
         moveDirection.x = moveInput.x;
         moveDirection.y = GRAVITY;
         moveDirection.z = moveInput.y;
 
-        Vector3 worldMove = transform.TransformDirection(moveDirection);
-
-        characterController.Move(worldMove * moveSpeed * deltaTime);
+        characterController.Move(transform.TransformDirection(moveDirection) * moveSpeed * Time.deltaTime);
     }
 
     private void HandleRotation()
     {
-        float horizontalRotation = lookInput.x * mouseSensitivity;
-        transform.Rotate(0f, horizontalRotation, 0f);
+        if (isSeated)
+            HandleSeatedRotation();
+        else
+            HandleFreeRotation();
+    }
+
+    private void HandleFreeRotation()
+    {
+        transform.Rotate(0f, lookInput.x * mouseSensitivity, 0f);
 
         verticalRotation -= lookInput.y * mouseSensitivity;
         verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
@@ -109,8 +126,46 @@ public class FirstPersonController : MonoBehaviour
         playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
     }
 
-    private void OnDestroy()
+    private void HandleSeatedRotation()
     {
-        inputActions?.Dispose();
+        float newY = transform.eulerAngles.y + lookInput.x * mouseSensitivity;
+        float deltaY = Mathf.DeltaAngle(seatedCenterYRotation, newY);
+        deltaY = Mathf.Clamp(deltaY, -seatedHorizontalLimit, seatedHorizontalLimit);
+        transform.rotation = Quaternion.Euler(0f, seatedCenterYRotation + deltaY, 0f);
+
+        verticalRotation -= lookInput.y * mouseSensitivity;
+        verticalRotation = Mathf.Clamp(verticalRotation, seatedVerticalMin, seatedVerticalMax);
+        playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
     }
+
+    private void HandleFOV()
+    {
+        playerCameraComponent.fieldOfView = Mathf.Lerp(
+            playerCameraComponent.fieldOfView,
+            targetFOV,
+            Time.deltaTime * fovLerpSpeed
+        );
+    }
+
+    /// <summary>Activates or deactivates seated camera constraints and FOV zoom.</summary>
+    public void SetSeatedMode(bool seated)
+    {
+        isSeated = seated;
+
+        if (seated)
+        {
+            seatedCenterYRotation = transform.eulerAngles.y;
+            verticalRotation = seatedInitialAngle;
+            playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+            targetFOV = seatedFOV;
+        }
+        else
+        {
+            verticalRotation = 0f;
+            playerCamera.localRotation = Quaternion.identity;
+            targetFOV = defaultFOV;
+        }
+    }
+
+    private void OnDestroy() => inputActions?.Dispose();
 }
