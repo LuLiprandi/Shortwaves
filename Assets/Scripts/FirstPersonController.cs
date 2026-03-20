@@ -36,6 +36,7 @@ public class FirstPersonController : MonoBehaviour
     private const float GRAVITY = -9.81f;
 
     public bool CanMove { get; set; } = true;
+    public bool CanLook { get; set; } = true;
     public bool IsSeated => isSeated;
 
     private void Awake()
@@ -110,6 +111,8 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleRotation()
     {
+        if (!CanLook) return;
+
         if (isSeated)
             HandleSeatedRotation();
         else

@@ -2498,7 +2498,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   windAmbiance: {fileID: 0}
   cassetteClik: {fileID: 0}
-  militaryVoice: {fileID: 0}
+  militaryVoice: {fileID: 8300000, guid: bd28f885825f57c429f5992f9f9058eb, type: 3}
   brokenVoice: {fileID: 0}
   distortionBurst: {fileID: 0}
   lofiMusic: {fileID: 0}
@@ -3511,9 +3511,9 @@ SceneRoots:
   - {fileID: 1267195717}
   - {fileID: 1869232857}
   - {fileID: 1382617957}
+  - {fileID: 286465452}
   - {fileID: 932738402}
   - {fileID: 444872688}
   - {fileID: 805064443}
   - {fileID: 650978063}
   - {fileID: 514807081}
-  - {fileID: 286465452}

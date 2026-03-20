@@ -39,7 +39,10 @@ public class CutsceneController : MonoBehaviour
     private void LockPlayer()
     {
         if (playerController != null)
+        {
             playerController.CanMove = false;
+            playerController.CanLook = false;
+        }
 
         if (interactionSystem != null)
             interactionSystem.enabled = false;
@@ -51,7 +54,10 @@ public class CutsceneController : MonoBehaviour
     private void UnlockPlayer()
     {
         if (playerController != null)
+        {
             playerController.CanMove = true;
+            playerController.CanLook = true;
+        }
 
         if (interactionSystem != null)
             interactionSystem.enabled = true;
