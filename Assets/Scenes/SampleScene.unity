@@ -356,12 +356,12 @@ MonoBehaviour:
       les potentielles menaces."
   - startTime: 20.1
     duration: 2.2
-    text: "\u2019est en quoi, votre mission est d'intercepter,"
+    text: "C\u2019est en quoi, votre mission est d'intercepter,"
   - startTime: 23.03
-    duration: 0.22
+    duration: 1
     text: 'analyser '
   - startTime: 23.03
-    duration: 0.22
+    duration: 4
     text: "et d\xE9chiffrer chaque transmission ennemie gr\xE2ce \xE0 cette vieille
       radio."
 --- !u!4 &57597240

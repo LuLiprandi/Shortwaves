@@ -39,6 +39,13 @@ public class InteractionSystem : MonoBehaviour
     {
         inputActions.Player.Interact.performed -= OnInteract;
         inputActions.Player.Disable();
+
+        DisableCurrentOutline();
+        currentInteractable = null;
+        wasShowingPrompt = false;
+
+        if (interactionPrompt != null)
+            interactionPrompt.gameObject.SetActive(false);
     }
 
     private void Update()
@@ -69,7 +76,6 @@ public class InteractionSystem : MonoBehaviour
                     }
                 }
 
-                // Mise à jour du prompt chaque frame pour refléter l'état courant
                 UpdatePrompt(currentInteractable.PromptMessage);
                 return;
             }
