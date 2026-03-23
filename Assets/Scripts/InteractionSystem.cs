@@ -26,9 +26,7 @@ public class InteractionSystem : MonoBehaviour
         inputActions = new PlayerInputActions();
 
         if (interactionPrompt != null)
-        {
             interactionPrompt.gameObject.SetActive(false);
-        }
     }
 
     private void OnEnable()
@@ -61,9 +59,7 @@ public class InteractionSystem : MonoBehaviour
                 if (currentInteractable != interactable)
                 {
                     DisableCurrentOutline();
-
                     currentInteractable = interactable;
-                    UpdatePrompt(true, interactable.PromptMessage);
 
                     OutlineEffect outline = hitInfo.collider.GetComponent<OutlineEffect>();
                     if (outline != null)
@@ -72,6 +68,9 @@ public class InteractionSystem : MonoBehaviour
                         currentOutline = outline;
                     }
                 }
+
+                // Mise à jour du prompt chaque frame pour refléter l'état courant
+                UpdatePrompt(currentInteractable.PromptMessage);
                 return;
             }
         }
@@ -80,7 +79,7 @@ public class InteractionSystem : MonoBehaviour
         {
             DisableCurrentOutline();
             currentInteractable = null;
-            UpdatePrompt(false, string.Empty);
+            UpdatePrompt(string.Empty);
         }
     }
 
@@ -93,27 +92,26 @@ public class InteractionSystem : MonoBehaviour
         }
     }
 
-    private void UpdatePrompt(bool show, string message)
+    /// <summary>Shows or hides the interaction prompt based on whether the message is non-empty.</summary>
+    private void UpdatePrompt(string message)
     {
         if (interactionPrompt == null) return;
 
-        if (show != wasShowingPrompt)
+        bool shouldShow = !string.IsNullOrEmpty(message);
+
+        if (shouldShow != wasShowingPrompt)
         {
-            interactionPrompt.gameObject.SetActive(show);
-            wasShowingPrompt = show;
+            interactionPrompt.gameObject.SetActive(shouldShow);
+            wasShowingPrompt = shouldShow;
         }
 
-        if (show)
-        {
+        if (shouldShow)
             interactionPrompt.text = message;
-        }
     }
 
     private void OnInteract(InputAction.CallbackContext context)
     {
         if (currentInteractable != null)
-        {
             currentInteractable.Interact();
-        }
     }
 }

@@ -2,105 +2,91 @@ using System;
 using System.Collections;
 using UnityEngine;
 
+[RequireComponent(typeof(AudioSource))]
 public class IntroAudioSequencer : MonoBehaviour
 {
-    [Header("Audio Clips")]
-    [SerializeField] private AudioClip windAmbiance;
-    [SerializeField] private AudioClip cassetteClik;
-    [SerializeField] private AudioClip militaryVoice;
-    [SerializeField] private AudioClip brokenVoice;
-    [SerializeField] private AudioClip distortionBurst;
-    [SerializeField] private AudioClip lofiMusic;
+    [Header("Intro")]
+    [SerializeField] private AudioClip introClip;
 
-    [Header("Timings")]
-    [SerializeField] private float windDuration = 3f;
-    [SerializeField] private float silenceAfterMilitary = 2f;
+    [Header("Lofi Music")]
+    [SerializeField] private AudioClip lofiMusicClip;
     [SerializeField] private float lofiMusicFadeInDuration = 3f;
+    [SerializeField] private float lofiMusicFadeOutDuration = 2f;
+    [SerializeField][Range(0f, 1f)] private float lofiMusicVolume = 1f;
 
-    private AudioSource voiceSource;
-    private AudioSource ambianceSource;
+    private AudioSource introSource;
     private AudioSource musicSource;
 
     public event Action OnSequenceComplete;
 
     private void Awake()
     {
-        voiceSource = gameObject.AddComponent<AudioSource>();
-        voiceSource.playOnAwake = false;
-
-        ambianceSource = gameObject.AddComponent<AudioSource>();
-        ambianceSource.loop = true;
-        ambianceSource.playOnAwake = false;
+        introSource = GetComponent<AudioSource>();
+        introSource.playOnAwake = false;
+        introSource.loop = false;
+        introSource.clip = introClip;
 
         musicSource = gameObject.AddComponent<AudioSource>();
-        musicSource.loop = true;
         musicSource.playOnAwake = false;
+        musicSource.loop = false;
         musicSource.volume = 0f;
     }
 
-    /// <summary>Starts the full intro audio sequence.</summary>
+    /// <summary>Plays the intro clip, then starts the lofi music and unlocks the player simultaneously.</summary>
     public void PlaySequence()
     {
-        StartCoroutine(SequenceRoutine());
+        if (introClip == null)
+        {
+            Debug.LogWarning("IntroAudioSequencer: aucun clip assigné.", this);
+            OnSequenceComplete?.Invoke();
+            return;
+        }
+
+        StartCoroutine(PlayRoutine());
     }
 
-    private IEnumerator SequenceRoutine()
+    private IEnumerator PlayRoutine()
     {
-        PlayAmbiance(windAmbiance);
-        yield return new WaitForSeconds(windDuration);
+        introSource.Play();
+        yield return new WaitForSeconds(introClip.length);
 
-        PlayVoice(cassetteClik);
-        yield return new WaitForSeconds(GetClipLength(cassetteClik));
-
-        PlayVoice(militaryVoice);
-        yield return new WaitForSeconds(GetClipLength(militaryVoice));
-
-        yield return new WaitForSeconds(silenceAfterMilitary);
-
-        PlayVoice(brokenVoice);
-        yield return new WaitForSeconds(GetClipLength(brokenVoice));
-
-        PlayVoice(distortionBurst);
-        yield return new WaitForSeconds(GetClipLength(distortionBurst));
-
-        StopAmbiance();
-        StartCoroutine(FadeMusicIn(lofiMusic, lofiMusicFadeInDuration));
-        yield return new WaitForSeconds(lofiMusicFadeInDuration);
+        if (lofiMusicClip != null)
+            StartCoroutine(MusicRoutine());
 
         OnSequenceComplete?.Invoke();
     }
 
-    private IEnumerator FadeMusicIn(AudioClip clip, float duration)
+    private IEnumerator MusicRoutine()
     {
-        musicSource.clip = clip;
+        musicSource.clip = lofiMusicClip;
         musicSource.Play();
 
+        // Fade in
         float elapsed = 0f;
-        while (elapsed < duration)
+        while (elapsed < lofiMusicFadeInDuration)
         {
             elapsed += Time.deltaTime;
-            musicSource.volume = Mathf.Lerp(0f, 1f, elapsed / duration);
+            musicSource.volume = Mathf.Lerp(0f, lofiMusicVolume, elapsed / lofiMusicFadeInDuration);
             yield return null;
         }
 
-        musicSource.volume = 1f;
+        musicSource.volume = lofiMusicVolume;
+
+        // Attendre la fin du clip (moins le fade out)
+        float remainingTime = lofiMusicClip.length - lofiMusicFadeInDuration - lofiMusicFadeOutDuration;
+        if (remainingTime > 0f)
+            yield return new WaitForSeconds(remainingTime);
+
+        // Fade out
+        elapsed = 0f;
+        while (elapsed < lofiMusicFadeOutDuration)
+        {
+            elapsed += Time.deltaTime;
+            musicSource.volume = Mathf.Lerp(lofiMusicVolume, 0f, elapsed / lofiMusicFadeOutDuration);
+            yield return null;
+        }
+
+        musicSource.Stop();
+        musicSource.volume = 0f;
     }
-
-    private void PlayVoice(AudioClip clip)
-    {
-        if (clip == null) return;
-        voiceSource.clip = clip;
-        voiceSource.Play();
-    }
-
-    private void PlayAmbiance(AudioClip clip)
-    {
-        if (clip == null) return;
-        ambianceSource.clip = clip;
-        ambianceSource.Play();
-    }
-
-    private void StopAmbiance() => ambianceSource.Stop();
-
-    private float GetClipLength(AudioClip clip) => clip != null ? clip.length : 0f;
 }
