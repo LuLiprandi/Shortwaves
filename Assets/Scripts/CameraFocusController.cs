@@ -38,10 +38,8 @@ public class CameraFocusController : MonoBehaviour
 
     private void Update()
     {
-        if (isFocused && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
+        if (isFocused && !IntroAudioSequencer.IsIntroPlaying && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             ExitFocus();
-        }
     }
 
     public void EnterFocus(Transform target, Vector3 targetPosition, Quaternion targetRotation)
@@ -73,9 +71,8 @@ public class CameraFocusController : MonoBehaviour
         {
             playerController.CanMove = false;
             if (interactionSystem != null)
-            {
                 interactionSystem.enabled = false;
-            }
+
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
@@ -101,12 +98,10 @@ public class CameraFocusController : MonoBehaviour
         }
 
         float elapsedTime = 0f;
-
         while (elapsedTime < focusTransitionDuration)
         {
             elapsedTime += Time.deltaTime;
-            float t = elapsedTime / focusTransitionDuration;
-            t = Mathf.SmoothStep(0f, 1f, t);
+            float t = Mathf.SmoothStep(0f, 1f, elapsedTime / focusTransitionDuration);
 
             cameraTransform.position = Vector3.Lerp(startPos, targetPos, t);
             cameraTransform.rotation = Quaternion.Slerp(startRot, targetRot, t);
@@ -126,9 +121,8 @@ public class CameraFocusController : MonoBehaviour
         {
             playerController.CanMove = true;
             if (interactionSystem != null)
-            {
                 interactionSystem.enabled = true;
-            }
+
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }

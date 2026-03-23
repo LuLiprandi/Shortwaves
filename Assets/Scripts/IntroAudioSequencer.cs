@@ -15,6 +15,8 @@ public class IntroAudioSequencer : MonoBehaviour
     [SerializeField] private float lofiMusicFadeOutDuration = 2f;
     [SerializeField][Range(0f, 1f)] private float lofiMusicVolume = 1f;
 
+    public static bool IsIntroPlaying { get; private set; }
+
     private AudioSource introSource;
     private AudioSource musicSource;
 
@@ -43,6 +45,7 @@ public class IntroAudioSequencer : MonoBehaviour
             return;
         }
 
+        IsIntroPlaying = true;
         StartCoroutine(PlayRoutine());
     }
 
@@ -61,6 +64,7 @@ public class IntroAudioSequencer : MonoBehaviour
         if (lofiMusicClip != null)
             StartCoroutine(MusicRoutine());
 
+        IsIntroPlaying = false;
         OnSequenceComplete?.Invoke();
     }
 

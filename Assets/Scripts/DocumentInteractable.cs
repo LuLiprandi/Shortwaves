@@ -1,30 +1,74 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class DocumentInteractable : MonoBehaviour, IInteractable
 {
     [Header("Settings")]
     [SerializeField] private string inspectPrompt = "Appuyer sur [E] pour examiner";
-    [SerializeField] private Transform inspectionAnchor;
+    [SerializeField] private GameObject documentOverlay;
 
-    private CameraFocusController cameraFocusController;
+    public static bool IsReading { get; private set; }
+    public static bool EscapeConsumedThisFrame { get; private set; }
 
-    public string PromptMessage => inspectPrompt;
+    private FirstPersonController playerController;
+    private InteractionSystem interactionSystem;
+
+    public string PromptMessage => IsReading ? "" : inspectPrompt;
 
     private void Start()
     {
-        cameraFocusController = FindFirstObjectByType<CameraFocusController>();
+        playerController = FindFirstObjectByType<FirstPersonController>();
+        interactionSystem = FindFirstObjectByType<InteractionSystem>();
+
+        if (documentOverlay != null)
+            documentOverlay.SetActive(false);
     }
 
-    /// <summary>Zooms the camera onto the document for inspection.</summary>
+    private void Update()
+    {
+        EscapeConsumedThisFrame = false;
+
+        if (IsReading && !IntroAudioSequencer.IsIntroPlaying && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            EscapeConsumedThisFrame = true;
+            CloseDocument();
+        }
+    }
+
+    /// <summary>Opens the document overlay and locks player movement.</summary>
     public void Interact()
     {
-        if (cameraFocusController == null || inspectionAnchor == null) return;
-        if (cameraFocusController.IsFocused) return;
+        if (IsReading) return;
 
-        cameraFocusController.EnterFocus(
-            inspectionAnchor,
-            inspectionAnchor.position,
-            inspectionAnchor.rotation
-        );
+        IsReading = true;
+
+        if (documentOverlay != null)
+            documentOverlay.SetActive(true);
+
+        if (playerController != null)
+            playerController.CanMove = false;
+
+        if (interactionSystem != null)
+            interactionSystem.enabled = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    private void CloseDocument()
+    {
+        IsReading = false;
+
+        if (documentOverlay != null)
+            documentOverlay.SetActive(false);
+
+        if (playerController != null)
+            playerController.CanMove = false;
+
+        if (interactionSystem != null)
+            interactionSystem.enabled = true;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 }

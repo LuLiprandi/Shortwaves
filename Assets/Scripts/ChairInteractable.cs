@@ -30,9 +30,9 @@ public class ChairInteractable : MonoBehaviour, IInteractable
         ResolvePlayerReferences();
     }
 
-    private void Update()
+    private void LateUpdate()
     {
-        if (isSitting && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (isSitting && !IntroAudioSequencer.IsIntroPlaying && !DocumentInteractable.EscapeConsumedThisFrame && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             StandUp();
     }
 
@@ -107,6 +107,6 @@ public class ChairInteractable : MonoBehaviour, IInteractable
 
         playerController = found;
         playerCharacterController = found.GetComponent<CharacterController>();
-        playerRoot = found.transform; // ← directement le Player, pas transform.root
+        playerRoot = found.transform;
     }
 }
