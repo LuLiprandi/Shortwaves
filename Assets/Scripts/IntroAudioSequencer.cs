@@ -7,6 +7,7 @@ public class IntroAudioSequencer : MonoBehaviour
 {
     [Header("Intro")]
     [SerializeField] private AudioClip introClip;
+    [SerializeField] private SubtitleSystem subtitleSystem;
 
     [Header("Lofi Music")]
     [SerializeField] private AudioClip lofiMusicClip;
@@ -32,7 +33,7 @@ public class IntroAudioSequencer : MonoBehaviour
         musicSource.volume = 0f;
     }
 
-    /// <summary>Plays the intro clip, then starts the lofi music and unlocks the player simultaneously.</summary>
+    /// <summary>Plays the intro clip with subtitles, then starts the lofi music and unlocks the player.</summary>
     public void PlaySequence()
     {
         if (introClip == null)
@@ -48,7 +49,14 @@ public class IntroAudioSequencer : MonoBehaviour
     private IEnumerator PlayRoutine()
     {
         introSource.Play();
+
+        if (subtitleSystem != null)
+            subtitleSystem.Play(introSource);
+
         yield return new WaitForSeconds(introClip.length);
+
+        if (subtitleSystem != null)
+            subtitleSystem.Stop();
 
         if (lofiMusicClip != null)
             StartCoroutine(MusicRoutine());
@@ -61,7 +69,6 @@ public class IntroAudioSequencer : MonoBehaviour
         musicSource.clip = lofiMusicClip;
         musicSource.Play();
 
-        // Fade in
         float elapsed = 0f;
         while (elapsed < lofiMusicFadeInDuration)
         {
@@ -72,12 +79,10 @@ public class IntroAudioSequencer : MonoBehaviour
 
         musicSource.volume = lofiMusicVolume;
 
-        // Attendre la fin du clip (moins le fade out)
         float remainingTime = lofiMusicClip.length - lofiMusicFadeInDuration - lofiMusicFadeOutDuration;
         if (remainingTime > 0f)
             yield return new WaitForSeconds(remainingTime);
 
-        // Fade out
         elapsed = 0f;
         while (elapsed < lofiMusicFadeOutDuration)
         {

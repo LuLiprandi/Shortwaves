@@ -1,4 +1,4 @@
-using System.Collections;
+Ôªøusing System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,10 +7,9 @@ public class ChairInteractable : MonoBehaviour, IInteractable
     [Header("Settings")]
     [SerializeField] private string sitPrompt = "Appuyer sur [E] pour s'asseoir";
     [SerializeField] private float sitDuration = 0.6f;
-    [SerializeField] private Vector3 exitOffset = new Vector3(0.8f, 0f, 0f);
 
     [Header("Seated Anchor")]
-    [Tooltip("Positionner au sol devant le bureau, orientÈ face au bureau. La camÈra sera 1.4 unitÈs au-dessus.")]
+    [Tooltip("Positionner au sol devant le bureau, orient√© face au bureau.")]
     [SerializeField] private Transform seatedAnchor;
 
     private FirstPersonController playerController;
@@ -37,7 +36,7 @@ public class ChairInteractable : MonoBehaviour, IInteractable
             StandUp();
     }
 
-    /// <summary>Moves the player root to the seated anchor and enables seated mode.</summary>
+    /// <summary>Moves the player to the seated anchor and enables seated mode.</summary>
     public void Interact()
     {
         if (isAnimating || isSitting) return;
@@ -48,6 +47,9 @@ public class ChairInteractable : MonoBehaviour, IInteractable
     private void StandUp()
     {
         if (playerController == null) return;
+
+        if (playerCharacterController != null)
+            playerCharacterController.enabled = false;
 
         playerRoot.position = originalRootPosition;
         playerRoot.rotation = originalRootRotation;
@@ -64,7 +66,7 @@ public class ChairInteractable : MonoBehaviour, IInteractable
     {
         if (seatedAnchor == null)
         {
-            Debug.LogWarning("ChairInteractable: SeatedAnchor non assignÈ.", this);
+            Debug.LogWarning("ChairInteractable: SeatedAnchor non assign√©.", this);
             yield break;
         }
 
@@ -81,22 +83,18 @@ public class ChairInteractable : MonoBehaviour, IInteractable
         Quaternion targetRotation = Quaternion.Euler(0f, seatedAnchor.eulerAngles.y, 0f);
 
         float elapsed = 0f;
-
         while (elapsed < sitDuration)
         {
             elapsed += Time.deltaTime;
             float t = Mathf.SmoothStep(0f, 1f, elapsed / sitDuration);
-
             playerRoot.position = Vector3.Lerp(originalRootPosition, targetPosition, t);
             playerRoot.rotation = Quaternion.Slerp(originalRootRotation, targetRotation, t);
-
             yield return null;
         }
 
         playerRoot.position = targetPosition;
         playerRoot.rotation = targetRotation;
 
-        // CharacterController reste dÈsactivÈ pendant toute la session assise
         playerController.SetSeatedMode(true);
         isSitting = true;
         isAnimating = false;
@@ -109,6 +107,6 @@ public class ChairInteractable : MonoBehaviour, IInteractable
 
         playerController = found;
         playerCharacterController = found.GetComponent<CharacterController>();
-        playerRoot = found.transform.root;
+        playerRoot = found.transform; // ‚Üê directement le Player, pas transform.root
     }
 }
