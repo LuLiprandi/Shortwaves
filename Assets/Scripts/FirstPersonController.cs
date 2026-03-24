@@ -11,6 +11,10 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private Transform playerCamera;
     [SerializeField] private float maxLookAngle = 90f;
 
+    [Header("Rotation initiale")]
+    [SerializeField] private float initialYRotation = 0f;
+    [SerializeField] private float initialVerticalAngle = 0f;
+
     [Header("Paramètres assis")]
     [SerializeField] private float seatedHorizontalLimit = 60f;
     [SerializeField] private float seatedVerticalMin = 5f;
@@ -53,6 +57,10 @@ public class FirstPersonController : MonoBehaviour
         playerCameraComponent = playerCamera.GetComponent<Camera>();
         defaultFOV = playerCameraComponent.fieldOfView;
         targetFOV = defaultFOV;
+
+        transform.rotation = Quaternion.Euler(0f, initialYRotation, 0f);
+        verticalRotation = initialVerticalAngle;
+        playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
     }
 
     private void OnEnable()
