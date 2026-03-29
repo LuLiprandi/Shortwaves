@@ -4,27 +4,28 @@ using UnityEngine.InputSystem;
 public class RotatableKnob : MonoBehaviour
 {
     [Header("Rotation Settings")]
-    [SerializeField] private Vector3 rotationAxis = Vector3.forward;
-    [SerializeField] private float rotationSpeed = 100f;
+    [Tooltip("Degrés par cran de molette — pas fixe indépendant de la valeur brute de la souris")]
+    [SerializeField] private float scrollStepDegrees = 8f;
+    [Tooltip("Degrés par seconde quand une flèche est maintenue")]
+    [SerializeField] private float keyTuneSpeed = 120f;
     [SerializeField] private float minRotation = 0f;
     [SerializeField] private float maxRotation = 270f;
+    [SerializeField] private Vector3 rotationAxis = Vector3.forward;
 
     [Header("Audio")]
     [SerializeField] private AudioClip rotateSound;
     [SerializeField] private float soundInterval = 15f;
 
-    private Camera mainCamera;
-    private bool isDragging = false;
     private float currentRotation = 0f;
-    private Vector2 lastMousePosition;
     private AudioSource audioSource;
     private float lastSoundRotation = 0f;
     private CameraFocusController focusController;
+    private RadioSystem radioSystem;
 
     private void Awake()
     {
-        mainCamera = Camera.main;
         focusController = FindFirstObjectByType<CameraFocusController>();
+        radioSystem = FindFirstObjectByType<RadioSystem>();
 
         if (rotateSound != null)
         {
@@ -38,56 +39,34 @@ public class RotatableKnob : MonoBehaviour
     {
         if (focusController == null || !focusController.IsFocused) return;
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        // Seulement pendant le tuning — le QTE gère lui-même les flèches
+        bool isTuning = radioSystem == null || radioSystem.State == RadioState.Tuning;
+        if (!isTuning) return;
+
+        float rotationDelta = 0f;
+
+        // Molette — pas fixe par cran, indépendant de la valeur brute de la souris
+        float scrollRaw = Mouse.current.scroll.ReadValue().y;
+        if (Mathf.Abs(scrollRaw) > 0.01f)
+            rotationDelta += Mathf.Sign(scrollRaw) * scrollStepDegrees;
+
+        // Flèches gauche/droite — rotation continue en maintenant
+        if (Keyboard.current != null)
         {
-            TryStartDrag();
+            if (Keyboard.current.leftArrowKey.isPressed)
+                rotationDelta -= keyTuneSpeed * Time.deltaTime;
+            if (Keyboard.current.rightArrowKey.isPressed)
+                rotationDelta += keyTuneSpeed * Time.deltaTime;
         }
 
-        if (Mouse.current.leftButton.wasReleasedThisFrame)
-        {
-            isDragging = false;
-        }
-
-        if (isDragging)
-        {
-            HandleDrag();
-        }
-    }
-
-    private void TryStartDrag()
-    {
-        Ray ray = mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
-
-        if (Physics.Raycast(ray, out RaycastHit hit))
-        {
-            if (hit.collider.gameObject == gameObject)
-            {
-                isDragging = true;
-                lastMousePosition = Mouse.current.position.ReadValue();
-            }
-        }
-    }
-
-    private void HandleDrag()
-    {
-        Vector2 currentMousePosition = Mouse.current.position.ReadValue();
-        Vector2 mouseDelta = currentMousePosition - lastMousePosition;
-        lastMousePosition = currentMousePosition;
-
-        float rotationDelta = mouseDelta.x * rotationSpeed * Time.deltaTime;
+        if (Mathf.Abs(rotationDelta) < 0.001f) return;
 
         float newRotation = Mathf.Clamp(currentRotation + rotationDelta, minRotation, maxRotation);
-
-        if (Mathf.Abs(newRotation - currentRotation) > 0.01f)
+        if (Mathf.Abs(newRotation - currentRotation) > 0.001f)
         {
             currentRotation = newRotation;
             ApplyRotation();
-
-            if (audioSource != null && Mathf.Abs(currentRotation - lastSoundRotation) >= soundInterval)
-            {
-                audioSource.PlayOneShot(rotateSound);
-                lastSoundRotation = currentRotation;
-            }
+            PlaySoundIfNeeded();
         }
     }
 
@@ -95,4 +74,17 @@ public class RotatableKnob : MonoBehaviour
     {
         transform.localRotation = Quaternion.AngleAxis(currentRotation, rotationAxis);
     }
+
+    private void PlaySoundIfNeeded()
+    {
+        if (audioSource == null || rotateSound == null) return;
+        if (Mathf.Abs(currentRotation - lastSoundRotation) >= soundInterval)
+        {
+            audioSource.PlayOneShot(rotateSound);
+            lastSoundRotation = currentRotation;
+        }
+    }
+
+    /// <summary>Returns the knob's current rotation as a normalized value between 0 and 1.</summary>
+    public float NormalizedValue => maxRotation > 0f ? currentRotation / maxRotation : 0f;
 }

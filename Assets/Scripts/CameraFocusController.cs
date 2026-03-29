@@ -25,6 +25,10 @@ public class CameraFocusController : MonoBehaviour
     private Quaternion focusTargetRotation;
 
     public bool IsFocused => isFocused;
+    public bool IsTransitioning => isTransitioning;
+
+    /// <summary>Fired when the camera finishes exiting focus.</summary>
+    public event System.Action OnFocusExited;
 
     private void Awake()
     {
@@ -70,6 +74,7 @@ public class CameraFocusController : MonoBehaviour
         if (entering)
         {
             playerController.CanMove = false;
+            playerController.CanLook = false;
             if (interactionSystem != null)
                 interactionSystem.enabled = false;
 
@@ -120,11 +125,14 @@ public class CameraFocusController : MonoBehaviour
         if (!entering)
         {
             playerController.CanMove = true;
+            playerController.CanLook = true;
             if (interactionSystem != null)
                 interactionSystem.enabled = true;
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+
+            OnFocusExited?.Invoke();
         }
     }
 }
