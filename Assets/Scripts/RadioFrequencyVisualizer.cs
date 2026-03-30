@@ -25,7 +25,6 @@ public class RadioFrequencyVisualizer : MonoBehaviour
     [Header("Alerte QTE")]
     [SerializeField] private GameObject qteAlertRoot;
     [SerializeField] private TextMeshProUGUI qteAlertLabel;
-    [SerializeField] private float alertFlashDuration = 3f;
 
     [Header("Panel décodé")]
     [Tooltip("Panneau affiché quand la station est décodée, contenant la clé et les notes")]
@@ -37,8 +36,6 @@ public class RadioFrequencyVisualizer : MonoBehaviour
 
     private float[] currentHeights;
     private float[] noiseOffsets;
-    private float alertTimer;
-    private bool isAlerting;
 
     private const float HeightLerpSpeed = 10f;
 
@@ -57,19 +54,7 @@ public class RadioFrequencyVisualizer : MonoBehaviour
 
     private void Update()
     {
-        if (!isAlerting) return;
-
-        alertTimer -= Time.deltaTime;
-        if (alertTimer <= 0f)
-        {
-            isAlerting = false;
-            if (qteAlertRoot != null) qteAlertRoot.SetActive(false);
-        }
-        else
-        {
-            bool flash = Mathf.FloorToInt(alertTimer * 4f) % 2 == 0;
-            if (qteAlertRoot != null) qteAlertRoot.SetActive(flash);
-        }
+        // Plus de logique de flash — le bandeau QTE est géré par Show/HideQTEAlert
     }
 
     /// <summary>Shows or hides the entire visualizer.</summary>
@@ -99,13 +84,16 @@ public class RadioFrequencyVisualizer : MonoBehaviour
             );
         }
 
-        // Bars — height driven by signalStrength × Perlin noise (silent when no signal)
+        // Bars — constant idle noise for realism + signal boost when near a station
         for (int i = 0; i < bars.Length; i++)
         {
             if (bars[i] == null) continue;
 
             float noise = Mathf.PerlinNoise(noiseOffsets[i] + Time.time * noiseSpeed, i * noiseScale);
-            float targetHeight = minBarHeight + (maxBarHeight - minBarHeight) * signalStrength * noise;
+            // Even at zero signal, bars breathe at low amplitude (idle noise)
+            float idleNoise = Mathf.PerlinNoise(noiseOffsets[i] + Time.time * noiseSpeed * 0.4f, i * noiseScale + 50f) * 0.1f;
+            float effectiveStrength = Mathf.Max(signalStrength, idleNoise);
+            float targetHeight = minBarHeight + (maxBarHeight - minBarHeight) * effectiveStrength * noise;
 
             currentHeights[i] = Mathf.Lerp(currentHeights[i], targetHeight, Time.deltaTime * HeightLerpSpeed);
 
@@ -114,22 +102,28 @@ public class RadioFrequencyVisualizer : MonoBehaviour
         }
     }
 
-    /// <summary>Triggers a flashing "SIGNAL CAPTÉ" alert when QTE starts.</summary>
+    /// <summary>Shows the QTE instruction banner — stays visible until HideQTEAlert() is called.</summary>
     public void ShowQTEAlert()
     {
         if (qteAlertRoot == null) return;
-        isAlerting = true;
-        alertTimer = alertFlashDuration;
         qteAlertRoot.SetActive(true);
         if (qteAlertLabel != null)
-            qteAlertLabel.text = "SIGNAL CAPTÉ — Appuie sur ← → pour maintenir l'aiguille dans la zone verte";
+            qteAlertLabel.text = "← →   Garde l'aiguille dans la zone verte";
     }
 
-    /// <summary>Immediately hides the QTE alert.</summary>
+    /// <summary>Immediately hides the QTE instruction banner.</summary>
     public void HideQTEAlert()
     {
-        isAlerting = false;
         if (qteAlertRoot != null) qteAlertRoot.SetActive(false);
+    }
+
+    /// <summary>Shows the "transmission en cours" panel after QTE success — the player listens to the voice clip.</summary>
+    public void ShowTransmission()
+    {
+        if (decodedPanel != null)
+            decodedPanel.SetActive(true);
+        if (decodedText != null)
+            decodedText.text = "TRANSMISSION EN COURS...\nÉcoute et mémorise le message.";
     }
 
     /// <summary>Shows the decoded clue panel with the station's clue text.</summary>

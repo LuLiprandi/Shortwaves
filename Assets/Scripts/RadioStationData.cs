@@ -15,15 +15,21 @@ public class RadioStationData : ScriptableObject
     public float LockRangeMHz = 0.08f;
 
     [Header("Audio")]
-    [Tooltip("Son de décodage joué quand le signal est capté")]
-    public AudioClip DecodingClip;
+    [Tooltip("Son statique / parasite joué en s'approchant de la fréquence (loop)")]
+    public AudioClip ProximityClip;
+
+    [Tooltip("Message vocal joué une seule fois après le succès du QTE — le joueur l'écoute pour décoder l'indice")]
+    public AudioClip VoiceClip;
 
     [Header("QTE")]
     [Tooltip("Durée en secondes à tenir dans la zone verte pour réussir")]
     public float QTESuccessDuration = 4f;
 
     [Header("Indice décodé")]
-    [Tooltip("Message / clé affiché au joueur quand la station est décodée avec succès")]
+    [Tooltip("Code de réponse attendu — chiffres séparés par '/', ex: 8/5/11. Le joueur doit l'entrer dans le décodeur.")]
+    public string SolutionCode = "";
+
+    [Tooltip("Texte optionnel non affiché automatiquement — utilisable en interne pour vérification")]
     [TextArea(3, 6)]
-    public string ClueText = "INDICE : ???";
+    public string ClueText = "";
 }

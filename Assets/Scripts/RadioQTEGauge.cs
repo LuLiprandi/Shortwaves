@@ -34,7 +34,7 @@ public class RadioQTEGauge : MonoBehaviour
     [Header("Indice contrôles")]
     [Tooltip("Label indiquant les touches au joueur pendant le QTE")]
     [SerializeField] private TMPro.TextMeshProUGUI controlsHintLabel;
-    private const string ControlsHintText = "Maintiens  ←  →  pour garder l'aiguille dans la zone verte";
+    private const string ControlsHintText = "← →  Maintenir dans la zone verte";
 
     [Header("Root UI")]
     [SerializeField] private GameObject gaugeRoot;

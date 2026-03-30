@@ -16,6 +16,7 @@ public class RadioSystem : MonoBehaviour
     [SerializeField] private AudioSource decodingAudioSource;
     [SerializeField] private RadioFrequencyVisualizer frequencyVisualizer;
     [SerializeField] private RadioQTEGauge qteGauge;
+    [SerializeField] private RadioDecoderPanel decoderPanel;
 
     [Header("Audio")]
     [SerializeField] private float signalFadeSpeed = 2f;
@@ -37,8 +38,8 @@ public class RadioSystem : MonoBehaviour
         if (!active)
         {
             StopDecoding();
-            if (State == RadioState.QTE)
-                ExitQTE();
+            if (State == RadioState.QTE) ExitQTE();
+            decoderPanel?.Hide();
             State = RadioState.Idle;
         }
         else if (State == RadioState.Idle)
@@ -52,9 +53,16 @@ public class RadioSystem : MonoBehaviour
 
     private void Update()
     {
-        if (!isActive || State == RadioState.Decoded) return;
+        if (!isActive) return;
 
         CurrentFrequency = Mathf.Lerp(frequencyMin, frequencyMax, knob.NormalizedValue);
+
+        // En état Decoded : on garde les barres animées mais on ne fait rien d'autre
+        if (State == RadioState.Decoded)
+        {
+            frequencyVisualizer.UpdateVisualizer(CurrentFrequency, 0f, knob.NormalizedValue);
+            return;
+        }
 
         RadioStationData nearest = FindNearestStation(out float distance);
         IsNearStation = nearest != null && distance <= nearest.ProximityRangeMHz;
@@ -87,14 +95,14 @@ public class RadioSystem : MonoBehaviour
 
     private void UpdateDecodingAudio(RadioStationData nearest, float distance)
     {
-        if (IsNearStation && nearest != null && nearest.DecodingClip != null)
+        if (IsNearStation && nearest != null && nearest.ProximityClip != null)
         {
             float t = 1f - Mathf.Clamp01(distance / nearest.ProximityRangeMHz);
             float targetVolume = Mathf.Lerp(0f, 1f, t);
 
-            if (!decodingAudioSource.isPlaying || decodingAudioSource.clip != nearest.DecodingClip)
+            if (!decodingAudioSource.isPlaying || decodingAudioSource.clip != nearest.ProximityClip)
             {
-                decodingAudioSource.clip = nearest.DecodingClip;
+                decodingAudioSource.clip = nearest.ProximityClip;
                 decodingAudioSource.loop = true;
                 decodingAudioSource.Play();
             }
@@ -134,7 +142,19 @@ public class RadioSystem : MonoBehaviour
         State = RadioState.Decoded;
         qteGauge.SetVisible(false);
         frequencyVisualizer.HideQTEAlert();
-        frequencyVisualizer.ShowDecoded(activeStation.ClueText);
+
+        // Arrêter le son de proximité, jouer le message vocal une seule fois
+        StopDecoding();
+        if (activeStation.VoiceClip != null)
+        {
+            decodingAudioSource.clip   = activeStation.VoiceClip;
+            decodingAudioSource.loop   = false;
+            decodingAudioSource.volume = 1f;
+            decodingAudioSource.Play();
+        }
+
+        // Ouvrir le décodeur à slots — le joueur entre le code après avoir écouté
+        decoderPanel?.Initialize(activeStation.SolutionCode);
         OnStationDecoded?.Invoke(activeStation);
     }
 
