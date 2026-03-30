@@ -20,12 +20,13 @@ public class RadioQTEGauge : MonoBehaviour
     [SerializeField] private Color dangerZoneColor = new Color(0.9f, 0.2f, 0.2f, 0.4f);
 
     [Header("Physique de l'aiguille")]
-    [SerializeField] private float driftAcceleration = 0.4f;
-    [SerializeField] private float maxDriftSpeed = 1.2f;
-    [SerializeField] private float playerPushForce = 2.5f;
-    [SerializeField] private float damping = 0.92f;
-    [SerializeField] private float randomImpulseInterval = 1.8f;
-    [SerializeField] private float randomImpulseStrength = 0.6f;
+    [SerializeField] private float driftAcceleration = 1.0f;
+    [SerializeField] private float maxDriftSpeed = 0.75f;
+    [SerializeField] private float playerPushForce = 2.2f;
+    [Tooltip("Damping exponentiel par seconde (indépendant du framerate). 0.2 = perd 80% de vitesse/s")]
+    [SerializeField] private float damping = 0.2f;
+    [SerializeField] private float randomImpulseInterval = 2.5f;
+    [SerializeField] private float randomImpulseStrength = 0.35f;
 
     [Header("Progression")]
     [SerializeField] private Image progressBar;
@@ -33,7 +34,7 @@ public class RadioQTEGauge : MonoBehaviour
     [Header("Indice contrôles")]
     [Tooltip("Label indiquant les touches au joueur pendant le QTE")]
     [SerializeField] private TMPro.TextMeshProUGUI controlsHintLabel;
-    private const string ControlsHintText = "◄ [←]  Maintenir dans la zone  [→] ►";
+    private const string ControlsHintText = "Maintiens  ←  →  pour garder l'aiguille dans la zone verte";
 
     [Header("Root UI")]
     [SerializeField] private GameObject gaugeRoot;
@@ -113,7 +114,10 @@ public class RadioQTEGauge : MonoBehaviour
         // Needle always has a tendency to drift away from center
         float driftDirection = needlePosition >= 0f ? 1f : -1f;
         needleVelocity += driftDirection * driftAcceleration * Time.deltaTime;
-        needleVelocity = Mathf.Clamp(needleVelocity * damping, -maxDriftSpeed, maxDriftSpeed);
+
+        // Frame-rate independent exponential damping via Mathf.Pow
+        needleVelocity *= Mathf.Pow(damping, Time.deltaTime);
+        needleVelocity = Mathf.Clamp(needleVelocity, -maxDriftSpeed, maxDriftSpeed);
         needlePosition += needleVelocity * Time.deltaTime;
     }
 

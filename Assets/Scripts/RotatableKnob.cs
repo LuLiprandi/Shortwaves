@@ -5,7 +5,7 @@ public class RotatableKnob : MonoBehaviour
 {
     [Header("Rotation Settings")]
     [Tooltip("Degrés par cran de molette — pas fixe indépendant de la valeur brute de la souris")]
-    [SerializeField] private float scrollStepDegrees = 8f;
+    [SerializeField] private float scrollStepDegrees = 5f;
     [Tooltip("Degrés par seconde quand une flèche est maintenue")]
     [SerializeField] private float keyTuneSpeed = 120f;
     [SerializeField] private float minRotation = 0f;

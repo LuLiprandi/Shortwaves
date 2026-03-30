@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: RadioStation
   m_EditorClassIdentifier: 
   FrequencyMHz: 96.5
-  ProximityRangeMHz: 0.4
-  LockRangeMHz: 0.08
+  ProximityRangeMHz: 2.5
+  LockRangeMHz: 0.8
   DecodingClip: {fileID: 0}
   QTESuccessDuration: 4
   ClueText: 8/5/11

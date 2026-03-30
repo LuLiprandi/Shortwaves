@@ -122,7 +122,7 @@ public class RadioFrequencyVisualizer : MonoBehaviour
         alertTimer = alertFlashDuration;
         qteAlertRoot.SetActive(true);
         if (qteAlertLabel != null)
-            qteAlertLabel.text = "◄ SIGNAL CAPTÉ — MAINTENIR ►";
+            qteAlertLabel.text = "SIGNAL CAPTÉ — Appuie sur ← → pour maintenir l'aiguille dans la zone verte";
     }
 
     /// <summary>Immediately hides the QTE alert.</summary>
