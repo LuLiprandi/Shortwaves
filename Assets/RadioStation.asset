@@ -15,6 +15,8 @@ MonoBehaviour:
   FrequencyMHz: 96.5
   ProximityRangeMHz: 2.5
   LockRangeMHz: 0.8
-  DecodingClip: {fileID: 0}
+  ProximityClip: {fileID: 0}
+  VoiceClip: {fileID: 8300000, guid: 5c4261cd21bcea94b95ca88cca7dae83, type: 3}
   QTESuccessDuration: 4
+  SolutionCode: 
   ClueText: 8/5/11
