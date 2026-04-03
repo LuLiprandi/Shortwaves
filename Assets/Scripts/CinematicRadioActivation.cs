@@ -6,7 +6,10 @@ public class CinematicRadioActivation : MonoBehaviour
     [SerializeField] private Light radioLight;
     [SerializeField] private GameObject radioGlowObject;
 
-    /// <summary>Activates the radio visual feedback at the end of the intro cutscene.</summary>
+    [Header("Interaction")]
+    [SerializeField] private RadioInspectable radioInspectable;
+
+    /// <summary>Activates the radio visual feedback and unlocks interaction at the end of the intro cutscene.</summary>
     public void Activate()
     {
         if (radioLight != null)
@@ -14,5 +17,8 @@ public class CinematicRadioActivation : MonoBehaviour
 
         if (radioGlowObject != null)
             radioGlowObject.SetActive(true);
+
+        if (radioInspectable != null)
+            radioInspectable.Unlock();
     }
 }

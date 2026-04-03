@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>Data asset defining a radio station's frequency and decoding parameters.</summary>
@@ -32,4 +33,8 @@ public class RadioStationData : ScriptableObject
     [Tooltip("Texte optionnel non affiché automatiquement — utilisable en interne pour vérification")]
     [TextArea(3, 6)]
     public string ClueText = "";
+
+    [Header("Sous-titres")]
+    [Tooltip("Sous-titres synchronisés au VoiceClip. startTime en secondes depuis le début du clip.")]
+    public SubtitleEntry[] Subtitles = Array.Empty<SubtitleEntry>();
 }

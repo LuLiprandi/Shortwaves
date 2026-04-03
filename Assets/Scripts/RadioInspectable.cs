@@ -13,8 +13,9 @@ public class RadioInspectable : MonoBehaviour, IInteractable
 
     private CameraFocusController focusController;
     private bool isFocused;
+    private bool isUnlocked = false;
 
-    public string PromptMessage => isFocused ? "" : promptText;
+    public string PromptMessage => (isUnlocked && !isFocused) ? promptText : "";
 
     private void Start()
     {
@@ -41,6 +42,7 @@ public class RadioInspectable : MonoBehaviour, IInteractable
 
     public void Interact()
     {
+        if (!isUnlocked) return;
         if (focusController == null || focusController.IsFocused) return;
 
         // Keep the camera at its current position — the player is already facing the radio.
@@ -64,5 +66,11 @@ public class RadioInspectable : MonoBehaviour, IInteractable
 
         if (radioSystem != null)
             radioSystem.SetActive(false);
+    }
+
+    /// <summary>Unlocks the radio interaction after the intro cutscene is complete.</summary>
+    public void Unlock()
+    {
+        isUnlocked = true;
     }
 }

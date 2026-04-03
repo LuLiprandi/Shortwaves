@@ -5,9 +5,10 @@ public class GameStateManager : MonoBehaviour
 {
     public static GameStateManager Instance { get; private set; }
 
-    public int CurrentDay { get; private set; } = 1;
-    public bool IsCutsceneActive { get; private set; } = false;
-    public bool IsPostAnomaly { get; private set; } = false;
+    public int  CurrentDay        { get; private set; } = 1;
+    public bool IsCutsceneActive  { get; private set; } = false;
+    public bool IsPostAnomaly     { get; private set; } = false;
+    public bool IsBlockingUIOpen  { get; private set; } = false;
 
     public event Action OnCutsceneStarted;
     public event Action OnCutsceneEnded;
@@ -56,4 +57,10 @@ public class GameStateManager : MonoBehaviour
         IsPostAnomaly = false;
         OnDayChanged?.Invoke(CurrentDay);
     }
+
+    /// <summary>Signals that a full-screen blocking UI (journal, etc.) is open.</summary>
+    public void OpenBlockingUI()  => IsBlockingUIOpen = true;
+
+    /// <summary>Signals that the blocking UI has been closed.</summary>
+    public void CloseBlockingUI() => IsBlockingUIOpen = false;
 }

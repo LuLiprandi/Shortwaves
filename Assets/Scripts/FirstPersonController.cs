@@ -3,10 +3,10 @@ using UnityEngine.InputSystem;
 
 public class FirstPersonController : MonoBehaviour
 {
-    [Header("ParamËtres de mouvement")]
+    [Header("ParamÔøΩtres de mouvement")]
     [SerializeField] private float moveSpeed = 5f;
 
-    [Header("ParamËtres de camÈra")]
+    [Header("ParamÔøΩtres de camÔøΩra")]
     [SerializeField] private float mouseSensitivity = 2f;
     [SerializeField] private Transform playerCamera;
     [SerializeField] private float maxLookAngle = 90f;
@@ -15,7 +15,7 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private float initialYRotation = 0f;
     [SerializeField] private float initialVerticalAngle = 0f;
 
-    [Header("ParamËtres assis")]
+    [Header("ParamÔøΩtres assis")]
     [SerializeField] private float seatedHorizontalLimit = 60f;
     [SerializeField] private float seatedVerticalMin = 5f;
     [SerializeField] private float seatedVerticalMax = 85f;
@@ -38,10 +38,18 @@ public class FirstPersonController : MonoBehaviour
     private float targetFOV;
 
     private const float GRAVITY = -9.81f;
+    private const string KeySensitivity = "opt_sensitivity";
 
     public bool CanMove { get; set; } = true;
     public bool CanLook { get; set; } = true;
     public bool IsSeated => isSeated;
+
+    private void Start()
+    {
+        // √âcrase la valeur Inspector si l'utilisateur a sauvegard√© une sensibilit√© dans les options
+        if (PlayerPrefs.HasKey(KeySensitivity))
+            mouseSensitivity = PlayerPrefs.GetFloat(KeySensitivity);
+    }
 
     private void Awake()
     {

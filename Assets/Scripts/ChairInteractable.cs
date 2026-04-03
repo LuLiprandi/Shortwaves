@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -32,7 +32,12 @@ public class ChairInteractable : MonoBehaviour, IInteractable
 
     private void LateUpdate()
     {
-        if (isSitting && !IntroAudioSequencer.IsIntroPlaying && !DocumentInteractable.EscapeConsumedThisFrame && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (isSitting
+            && !GameStateManager.Instance.IsCutsceneActive
+            && !GameStateManager.Instance.IsBlockingUIOpen
+            && !DocumentInteractable.EscapeConsumedThisFrame
+            && Keyboard.current != null
+            && Keyboard.current.escapeKey.wasPressedThisFrame)
             StandUp();
     }
 

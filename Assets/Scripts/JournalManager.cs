@@ -1,0 +1,118 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+/// <summary>
+/// Singleton that owns the journal panel lifecycle.
+/// Press J to open/close. Listens to GameStateManager.OnAnomalyTriggered to refresh thoughts live.
+/// </summary>
+public class JournalManager : MonoBehaviour
+{
+    public static JournalManager Instance { get; private set; }
+
+    [Header("Data — one entry per day, in order")]
+    [SerializeField] private JournalDayData[] days;
+
+    [Header("References")]
+    [SerializeField] private JournalPanel journalPanel;
+
+    private FirstPersonController playerController;
+    private InteractionSystem     interactionSystem;
+    private bool isOpen;
+
+    public bool IsOpen => isOpen;
+
+    // ── Unity lifecycle ───────────────────────────────────────────────────────
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+    }
+
+    private void Start()
+    {
+        playerController  = FindFirstObjectByType<FirstPersonController>();
+        interactionSystem = FindFirstObjectByType<InteractionSystem>();
+
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnAnomalyTriggered += HandleAnomalyTriggered;
+    }
+
+    private void OnDestroy()
+    {
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnAnomalyTriggered -= HandleAnomalyTriggered;
+    }
+
+    private void Update()
+    {
+        if (Keyboard.current == null) return;
+        if (GameStateManager.Instance.IsCutsceneActive) return;
+
+        if (isOpen && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            Close();
+            return;
+        }
+
+        if (Keyboard.current.jKey.wasPressedThisFrame)
+            Toggle();
+    }
+
+    // ── Public API ────────────────────────────────────────────────────────────
+
+    public void Toggle() { if (isOpen) Close(); else Open(); }
+
+    /// <summary>Opens the journal and locks player input.</summary>
+    public void Open()
+    {
+        if (isOpen) return;
+        isOpen = true;
+
+        var data     = GetCurrentData();
+        var thoughts = GameStateManager.Instance.IsPostAnomaly
+            ? data?.PostAnomalyThoughts ?? ""
+            : data?.PreAnomalyThoughts  ?? "";
+
+        journalPanel.Show(GameStateManager.Instance.CurrentDay, thoughts);
+        GameStateManager.Instance.OpenBlockingUI();
+
+        if (playerController  != null) playerController.CanMove = false;
+        if (interactionSystem != null) interactionSystem.enabled = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+    }
+
+    /// <summary>Closes the journal and restores player input.</summary>
+    public void Close()
+    {
+        if (!isOpen) return;
+        isOpen = false;
+
+        journalPanel.Hide();
+        GameStateManager.Instance.CloseBlockingUI();
+
+        if (playerController  != null) playerController.CanMove = true;
+        if (interactionSystem != null) interactionSystem.enabled = true;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible   = false;
+    }
+
+    // ── Internal ──────────────────────────────────────────────────────────────
+
+    private void HandleAnomalyTriggered()
+    {
+        if (!isOpen) return;
+        var data = GetCurrentData();
+        if (data != null) journalPanel.UpdateThoughts(data.PostAnomalyThoughts);
+    }
+
+    private JournalDayData GetCurrentData()
+    {
+        if (days == null || days.Length == 0) return null;
+        int idx = GameStateManager.Instance.CurrentDay - 1;
+        return days[Mathf.Clamp(idx, 0, days.Length - 1)];
+    }
+}

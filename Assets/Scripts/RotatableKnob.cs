@@ -25,7 +25,7 @@ public class RotatableKnob : MonoBehaviour
     private void Awake()
     {
         focusController = FindFirstObjectByType<CameraFocusController>();
-        radioSystem = FindFirstObjectByType<RadioSystem>();
+        radioSystem = GetComponentInParent<RadioSystem>();
 
         if (rotateSound != null)
         {

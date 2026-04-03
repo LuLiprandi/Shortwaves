@@ -42,7 +42,7 @@ public class CameraFocusController : MonoBehaviour
 
     private void Update()
     {
-        if (isFocused && !IntroAudioSequencer.IsIntroPlaying && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (isFocused && !GameStateManager.Instance.IsCutsceneActive && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             ExitFocus();
     }
 

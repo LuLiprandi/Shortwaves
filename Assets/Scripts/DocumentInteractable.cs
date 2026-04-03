@@ -28,7 +28,7 @@ public class DocumentInteractable : MonoBehaviour, IInteractable
     {
         EscapeConsumedThisFrame = false;
 
-        if (IsReading && !IntroAudioSequencer.IsIntroPlaying && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (IsReading && !GameStateManager.Instance.IsCutsceneActive && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             EscapeConsumedThisFrame = true;
             CloseDocument();
@@ -63,7 +63,7 @@ public class DocumentInteractable : MonoBehaviour, IInteractable
             documentOverlay.SetActive(false);
 
         if (playerController != null)
-            playerController.CanMove = false;
+            playerController.CanMove = true;
 
         if (interactionSystem != null)
             interactionSystem.enabled = true;

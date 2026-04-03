@@ -17,6 +17,7 @@ public class RadioSystem : MonoBehaviour
     [SerializeField] private RadioFrequencyVisualizer frequencyVisualizer;
     [SerializeField] private RadioQTEGauge qteGauge;
     [SerializeField] private RadioDecoderPanel decoderPanel;
+    [SerializeField] private SubtitleSystem subtitleSystem;
 
     [Header("Audio")]
     [SerializeField] private float signalFadeSpeed = 2f;
@@ -40,6 +41,7 @@ public class RadioSystem : MonoBehaviour
             StopDecoding();
             if (State == RadioState.QTE) ExitQTE();
             decoderPanel?.Hide();
+            subtitleSystem?.Stop();
             State = RadioState.Idle;
         }
         else if (State == RadioState.Idle)
@@ -151,6 +153,9 @@ public class RadioSystem : MonoBehaviour
             decodingAudioSource.loop   = false;
             decodingAudioSource.volume = 1f;
             decodingAudioSource.Play();
+
+            if (subtitleSystem != null && activeStation.Subtitles.Length > 0)
+                subtitleSystem.Play(decodingAudioSource, activeStation.Subtitles);
         }
 
         // Ouvrir le décodeur à slots — le joueur entre le code après avoir écouté

@@ -16,7 +16,6 @@ public class IntroAudioSequencer : MonoBehaviour
     [SerializeField][Range(0f, 1f)] private float lofiMusicVolume = 1f;
 
     public static bool IsIntroPlaying { get; private set; }
-
     private AudioSource introSource;
     private AudioSource musicSource;
 
@@ -40,14 +39,13 @@ public class IntroAudioSequencer : MonoBehaviour
     {
         if (introClip == null)
         {
-            Debug.LogWarning("IntroAudioSequencer: aucun clip assigné.", this);
+            Debug.LogWarning("IntroAudioSequencer: aucun clip assignï¿½.", this);
             OnSequenceComplete?.Invoke();
             return;
         }
 
         IsIntroPlaying = true;
-        StartCoroutine(PlayRoutine());
-    }
+        StartCoroutine(PlayRoutine());    }
 
     private IEnumerator PlayRoutine()
     {
@@ -64,7 +62,6 @@ public class IntroAudioSequencer : MonoBehaviour
         if (lofiMusicClip != null)
             StartCoroutine(MusicRoutine());
 
-        IsIntroPlaying = false;
         OnSequenceComplete?.Invoke();
     }
 
