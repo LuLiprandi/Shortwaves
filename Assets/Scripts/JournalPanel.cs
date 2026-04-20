@@ -21,22 +21,30 @@ public class JournalPanel : MonoBehaviour
     private static readonly Color ColSlotActive = new(0.78f, 0.72f, 0.56f, 1f);
     private static readonly Color ColSlotLine   = new(0.28f, 0.20f, 0.10f, 1f);
 
-    // Layout
-    private const float NW = 1640f, NH = 980f, SpineW = 80f, CoverPad = 18f;
+    // Layout — notebook fills ~98 % of 1920×1080 reference canvas
+    private const float NW = 1880f, NH = 1055f, SpineW = 80f, CoverPad = 18f;
     private const float HeaderH = 72f, TabH = 48f, DivH = 1.5f;
     private const float ContentTop = HeaderH + DivH + TabH + DivH;
-    private const int Holes = 15, SlotCount = 6, SlotMaxLen = 3, RuleLines = 22;
+    private const int Holes = 15, SlotMaxLen = 3, RuleLines = 22;
 
-    // Prefs
-    private const string PrefCode = "jrn_code", PrefMsg = "jrn_msg";
+    // Prefs — keyed per day so each day keeps its own state
+    private const string PrefCodeKey = "jrn_code_d", PrefMsgKey = "jrn_msg_d";
 
     // Refs
-    private TextMeshProUGUI dayTitleTmp, thoughtsTmp, journalTabLabel, decoderTabLabel;
+    [SerializeField] private JournalConfig journalConfig;
+
+    private TextMeshProUGUI dayTitleTmp, thoughtsTmp, journalSectionLabel;
+    private TextMeshProUGUI journalTabLabel, decoderTabLabel;
     private GameObject journalContent, decoderContent;
     private Image journalTabBg, decoderTabBg;
-    private readonly string[] slotValues = new string[SlotCount];
+    private GameObject decoderTabGO;          // the DECODAGE tab button — shown/hidden per day
+    private Transform  slotsRowTransform;     // rebuilt when slot count changes
+
+    private int      currentDay;
+    private int      activeSlotCount;
+    private string[] slotValues = new string[6];
     private TextMeshProUGUI[] slotTexts;
-    private Image[] slotBgs;
+    private Image[]           slotBgs;
     private int activeSlot;
     private TMP_InputField messageField;
 
@@ -49,15 +57,31 @@ public class JournalPanel : MonoBehaviour
         HandleSlotInput();
     }
 
-    /// <summary>Shows the journal panel with given day and thoughts text.</summary>
+    /// <summary>Shows the journal for a given day. Decoder tab visibility and slot count come from JournalConfig.</summary>
     public void Show(int day, string thoughts)
     {
-        dayTitleTmp.text = "Carnet  -  Jour " + day;
-        thoughtsTmp.text = thoughts;
-        LoadDecoder(); SetTab(true); gameObject.SetActive(true);
+        currentDay = day;
+        dayTitleTmp.text          = "Carnet  -  Jour " + day;
+        journalSectionLabel.text  = "Jour " + day + " :";
+        thoughtsTmp.text          = thoughts;
+
+        bool hasDecoder = journalConfig != null ? journalConfig.HasDecoder(day) : day <= 3;
+        int  slotCount  = journalConfig != null ? journalConfig.SlotCount(day)  : 6;
+
+        decoderTabGO.SetActive(hasDecoder);
+
+        if (hasDecoder)
+        {
+            if (slotCount != activeSlotCount)
+                RebuildSlots(slotCount);
+            LoadDecoder();
+        }
+
+        SetTab(true);
+        gameObject.SetActive(true);
     }
 
-    /// <summary>Persists decoder and hides the panel.</summary>
+    /// <summary>Persists decoder state for the current day and hides the panel.</summary>
     public void Hide() { SaveDecoder(); gameObject.SetActive(false); }
 
     /// <summary>Updates thoughts text while panel is open.</summary>
@@ -71,14 +95,21 @@ public class JournalPanel : MonoBehaviour
         c.renderMode = RenderMode.ScreenSpaceOverlay; c.sortingOrder = 20;
         var sc = gameObject.AddComponent<CanvasScaler>();
         sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        sc.referenceResolution = new Vector2(1920f, 1080f); sc.matchWidthOrHeight = 0.5f;
+        sc.referenceResolution = new Vector2(1280f, 720f); sc.matchWidthOrHeight = 0.5f;
         gameObject.AddComponent<GraphicRaycaster>();
 
         Stretch(MakeImg("Overlay", transform, ColOverlay).GetComponent<RectTransform>());
-        Center(MakeImg("Shadow", transform, ColShadow).GetComponent<RectTransform>(), NW + 18f, NH + 18f, new Vector2(9f, -9f));
 
+        // Shadow — stretched behind notebook with slight offset
+        var shRT = MakeImg("Shadow", transform, ColShadow).GetComponent<RectTransform>();
+        shRT.anchorMin = Vector2.zero; shRT.anchorMax = Vector2.one;
+        shRT.offsetMin = new Vector2(-9f, -9f); shRT.offsetMax = new Vector2(9f, 9f);
+
+        // Notebook — fills entire canvas with a small inset margin
         var nb = MakeGO("Notebook", transform);
-        Center(nb.AddComponent<RectTransform>(), NW, NH);
+        var nbRT = nb.AddComponent<RectTransform>();
+        nbRT.anchorMin = Vector2.zero; nbRT.anchorMax = Vector2.one;
+        nbRT.offsetMin = new Vector2(6f, 6f); nbRT.offsetMax = new Vector2(-6f, -6f);
         nb.AddComponent<Image>().color = ColCover;
         BuildCoverBorder(nb.transform);
         BuildSpine(nb.transform);
@@ -134,14 +165,20 @@ public class JournalPanel : MonoBehaviour
 
     private static void BuildRules(Transform p)
     {
-        float top = ContentTop + 14f, usable = NH - CoverPad * 2f - top - 24f;
-        float sp = usable / (RuleLines - 1);
+        // Reference page height at 1280×720: 720 - 2*CoverPad = 684
+        const float PageRefH = 720f - CoverPad * 2f;
+        float topFrac  = (ContentTop + 14f) / PageRefH;
+        float botFrac  = 24f / PageRefH;
+        float available = 1f - topFrac - botFrac;
         for (int i = 0; i < RuleLines; i++)
         {
+            float yAnchor = 1f - topFrac - available * (i / (float)(RuleLines - 1));
             var rt = MakeImg("Rl" + i, p, ColRule).GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, 1f); rt.anchorMax = new Vector2(1f, 1f);
-            rt.pivot = new Vector2(0.5f, 1f); rt.sizeDelta = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(0f, -(top + i * sp));
+            rt.anchorMin = new Vector2(0f, yAnchor);
+            rt.anchorMax = new Vector2(1f, yAnchor);
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(0f, 1f);
+            rt.anchoredPosition = Vector2.zero;
         }
     }
 
@@ -184,8 +221,8 @@ public class JournalPanel : MonoBehaviour
         hlg.childControlWidth = false; hlg.childControlHeight = true;
         hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = true;
 
-        MakeTab("TabJ", tb.transform, "JOURNAL",  true,  out journalTabBg, out journalTabLabel);
-        MakeTab("TabD", tb.transform, "DECODAGE", false, out decoderTabBg, out decoderTabLabel);
+        MakeTab("TabJ", tb.transform, "JOURNAL",  true,  out journalTabBg, out journalTabLabel, out _);
+        MakeTab("TabD", tb.transform, "DECODAGE", false, out decoderTabBg, out decoderTabLabel, out decoderTabGO);
 
         HRule("HR2", p, ContentTop - DivH);
         journalContent = BuildJournalTab(p);
@@ -193,9 +230,10 @@ public class JournalPanel : MonoBehaviour
     }
 
     private void MakeTab(string name, Transform p, string label, bool isJ,
-        out Image bg, out TextMeshProUGUI lbl)
+        out Image bg, out TextMeshProUGUI lbl, out GameObject tabGO)
     {
         var go = MakeGO(name, p); go.AddComponent<RectTransform>();
+        tabGO = go;
         bg = go.AddComponent<Image>(); bg.color = ColTabInact;
         go.AddComponent<LayoutElement>().preferredWidth = 200f;
         var btn = go.AddComponent<Button>();
@@ -214,33 +252,30 @@ public class JournalPanel : MonoBehaviour
         rRT.anchorMin = Vector2.zero; rRT.anchorMax = Vector2.one;
         rRT.offsetMin = Vector2.zero; rRT.offsetMax = new Vector2(0f, -ContentTop);
 
-        var sc = MakeGO("Scroll", root.transform); Stretch(sc.AddComponent<RectTransform>());
-        var sr = sc.AddComponent<ScrollRect>(); sr.horizontal = false; sr.scrollSensitivity = 50f;
-
-        var vp = MakeGO("Vp", sc.transform); Stretch(vp.AddComponent<RectTransform>()); vp.AddComponent<RectMask2D>();
-        sr.viewport = vp.GetComponent<RectTransform>();
-
-        var cnt = MakeGO("Cnt", vp.transform); var cRT = cnt.AddComponent<RectTransform>();
-        cRT.anchorMin = new Vector2(0f, 1f); cRT.anchorMax = new Vector2(1f, 1f);
-        cRT.pivot = new Vector2(0.5f, 1f); cRT.sizeDelta = Vector2.zero;
-        cnt.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-        var vlg = cnt.AddComponent<VerticalLayoutGroup>();
-        vlg.padding = new RectOffset(52, 52, 40, 40); vlg.spacing = 16f;
-        vlg.childControlWidth = true; vlg.childControlHeight = true;
+        // Simple VLG — no ScrollRect, no ContentSizeFitter, no layout conflicts
+        var vlg = root.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(52, 52, 40, 40); vlg.spacing = 12f;
+        vlg.childControlWidth  = true;  vlg.childControlHeight  = true;
         vlg.childForceExpandWidth = true; vlg.childForceExpandHeight = false;
-        sr.content = cRT;
 
-        var sec = MakeTMP("Sec", cnt.transform, "Pensees de l'operateur", 13f, ColInkDim, FontStyles.Bold | FontStyles.Italic);
-        sec.alignment = TextAlignmentOptions.TopLeft; sec.characterSpacing = 1f;
-        sec.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
-        MakeImg("SL", cnt.transform, ColRule).gameObject.AddComponent<LayoutElement>().preferredHeight = 1f;
-        Spacer(cnt.transform, 8f);
+        journalSectionLabel = MakeTMP("Sec", root.transform, "Jour 1 :", 14f, ColInkDim,
+            FontStyles.Bold | FontStyles.Italic);
+        journalSectionLabel.alignment = TextAlignmentOptions.TopLeft;
+        journalSectionLabel.characterSpacing = 1f;
+        journalSectionLabel.gameObject.AddComponent<LayoutElement>().preferredHeight = 28f;
 
-        thoughtsTmp = MakeTMP("Thoughts", cnt.transform, "", 20f, ColInk, FontStyles.Italic);
+        var sepGO = MakeGO("Sep", root.transform);
+        sepGO.AddComponent<RectTransform>().sizeDelta = new Vector2(0f, 1.5f);
+        sepGO.AddComponent<Image>().color = ColRule;
+        sepGO.AddComponent<LayoutElement>().preferredHeight = 1.5f;
+
+        // Thoughts — preferred height driven by TMP text content, no LayoutElement override
+        thoughtsTmp = MakeTMP("Thoughts", root.transform, "", 22f, ColInk, FontStyles.Italic);
         thoughtsTmp.alignment = TextAlignmentOptions.TopLeft;
         thoughtsTmp.textWrappingMode = TextWrappingModes.Normal;
-        thoughtsTmp.lineSpacing = 18f; thoughtsTmp.characterSpacing = 0.3f;
-        thoughtsTmp.gameObject.AddComponent<LayoutElement>().minHeight = 120f;
+        thoughtsTmp.lineSpacing = 4f;
+        thoughtsTmp.characterSpacing = 0.3f;
+
         return root;
     }
 
@@ -253,11 +288,11 @@ public class JournalPanel : MonoBehaviour
 
         var vlg = root.AddComponent<VerticalLayoutGroup>();
         vlg.padding = new RectOffset(52, 52, 36, 36); vlg.spacing = 20f;
-        vlg.childControlWidth = true; vlg.childControlHeight = false;
+        vlg.childControlWidth = true; vlg.childControlHeight = true;
         vlg.childForceExpandWidth = true; vlg.childForceExpandHeight = false;
 
         SecLabel("Code", root.transform);
-        BuildSlots(root.transform);
+        BuildSlots(root.transform, 6); // initial count; RebuildSlots() updates it when Show() changes it
 
         var hint = MakeTMP("Hint", root.transform,
             "<- ->  naviguer     chiffres: saisir     Backspace: effacer", 11f, ColInkDim, FontStyles.Italic);
@@ -276,21 +311,29 @@ public class JournalPanel : MonoBehaviour
         var lbl = MakeTMP("L" + label, p, label, 13f, ColInkDim, FontStyles.Bold | FontStyles.Italic);
         lbl.alignment = TextAlignmentOptions.TopLeft; lbl.characterSpacing = 1f;
         lbl.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
-        MakeImg("Ln" + label, p, ColRule).gameObject.AddComponent<LayoutElement>().preferredHeight = 1f;
+
+        // Explicit height — prevents Image from stretching to fill parent
+        var ln = MakeGO("Ln" + label, p);
+        var lnRT = ln.AddComponent<RectTransform>(); lnRT.sizeDelta = new Vector2(0f, 1f);
+        ln.AddComponent<Image>().color = ColRule;
+        ln.AddComponent<LayoutElement>().preferredHeight = 1f;
     }
 
-    private void BuildSlots(Transform p)
+    private void BuildSlots(Transform p, int count = 6)
     {
         var row = MakeGO("Slots", p); row.AddComponent<RectTransform>();
+        slotsRowTransform = row.transform;
         var hlg = row.AddComponent<HorizontalLayoutGroup>();
         hlg.childControlWidth = false; hlg.childControlHeight = true;
         hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = true; hlg.spacing = 18f;
         row.AddComponent<LayoutElement>().preferredHeight = 88f;
 
-        slotTexts = new TextMeshProUGUI[SlotCount];
-        slotBgs = new Image[SlotCount];
+        slotValues      = new string[count];
+        slotTexts       = new TextMeshProUGUI[count];
+        slotBgs         = new Image[count];
+        activeSlotCount = count;
 
-        for (int i = 0; i < SlotCount; i++)
+        for (int i = 0; i < count; i++)
         {
             var s = MakeGO("S" + i, row.transform);
             s.AddComponent<RectTransform>().sizeDelta = new Vector2(96f, 88f);
@@ -303,6 +346,15 @@ public class JournalPanel : MonoBehaviour
             lRT.pivot = new Vector2(0.5f, 0f); lRT.sizeDelta = new Vector2(0f, 3f); lRT.anchoredPosition = Vector2.zero;
             slotValues[i] = "";
         }
+    }
+
+    /// <summary>Destroys the current slot row and creates a new one with the requested count.</summary>
+    private void RebuildSlots(int count)
+    {
+        if (slotsRowTransform != null) Destroy(slotsRowTransform.gameObject);
+        // The decoder VLG parent is decoderContent; insert after its first 2 children (SecLabel = 2 GOs).
+        BuildSlots(decoderContent.transform, count);
+        slotsRowTransform.SetSiblingIndex(2);
     }
 
     private static TMP_InputField BuildMsgField(string name, Transform p)
@@ -348,15 +400,15 @@ public class JournalPanel : MonoBehaviour
     private void HandleSlotInput()
     {
         var kb = Keyboard.current; if (kb == null) return;
-        if (kb.leftArrowKey.wasPressedThisFrame  && activeSlot > 0)             { activeSlot--; RefreshSlots(); }
-        if (kb.rightArrowKey.wasPressedThisFrame && activeSlot < SlotCount - 1) { activeSlot++; RefreshSlots(); }
+        if (kb.leftArrowKey.wasPressedThisFrame  && activeSlot > 0)                  { activeSlot--; RefreshSlots(); }
+        if (kb.rightArrowKey.wasPressedThisFrame && activeSlot < activeSlotCount - 1) { activeSlot++; RefreshSlots(); }
 
         for (int d = 0; d <= 9; d++)
         {
             if (!DigitDown(kb, d)) continue;
             if (slotValues[activeSlot].Length >= SlotMaxLen) break;
             slotValues[activeSlot] += d.ToString();
-            if (slotValues[activeSlot].Length >= SlotMaxLen && activeSlot < SlotCount - 1) activeSlot++;
+            if (slotValues[activeSlot].Length >= SlotMaxLen && activeSlot < activeSlotCount - 1) activeSlot++;
             RefreshSlots(); break;
         }
 
@@ -370,7 +422,7 @@ public class JournalPanel : MonoBehaviour
 
     private void RefreshSlots()
     {
-        for (int i = 0; i < SlotCount; i++)
+        for (int i = 0; i < activeSlotCount; i++)
         {
             if (slotTexts[i] == null) continue;
             slotTexts[i].text = slotValues[i].Length > 0 ? slotValues[i] : "_";
@@ -380,18 +432,18 @@ public class JournalPanel : MonoBehaviour
 
     private void SaveDecoder()
     {
-        PlayerPrefs.SetString(PrefCode, string.Join("/", slotValues));
-        PlayerPrefs.SetString(PrefMsg, messageField?.text ?? "");
+        PlayerPrefs.SetString(PrefCodeKey + currentDay, string.Join("/", slotValues));
+        PlayerPrefs.SetString(PrefMsgKey  + currentDay, messageField?.text ?? "");
         PlayerPrefs.Save();
     }
 
     private void LoadDecoder()
     {
-        var saved = PlayerPrefs.GetString(PrefCode, "");
+        var saved = PlayerPrefs.GetString(PrefCodeKey + currentDay, "");
         if (!string.IsNullOrEmpty(saved))
-        { var parts = saved.Split('/'); for (int i = 0; i < SlotCount && i < parts.Length; i++) slotValues[i] = parts[i]; }
-        else { for (int i = 0; i < SlotCount; i++) slotValues[i] = ""; }
-        if (messageField != null) messageField.text = PlayerPrefs.GetString(PrefMsg, "");
+        { var parts = saved.Split('/'); for (int i = 0; i < activeSlotCount && i < parts.Length; i++) slotValues[i] = parts[i]; }
+        else { for (int i = 0; i < activeSlotCount; i++) slotValues[i] = ""; }
+        if (messageField != null) messageField.text = PlayerPrefs.GetString(PrefMsgKey + currentDay, "");
         activeSlot = 0; RefreshSlots();
     }
 

@@ -3019,7 +3019,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   days:
-  - {fileID: 0}
+  - {fileID: 11400000, guid: b85e5e8fe5831334690398f1c275c2c8, type: 2}
   journalPanel: {fileID: 1585625291}
 --- !u!4 &587977817
 Transform:
@@ -7179,6 +7179,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff8e385958b18a74f8daa16aba701921, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  journalConfig: {fileID: 0}
 --- !u!4 &1585625292
 Transform:
   m_ObjectHideFlags: 0
