@@ -98,6 +98,17 @@ public class RadioQTEGauge : MonoBehaviour
         CheckZones();
     }
 
+    /// <summary>
+    /// Pousse l'aiguille dans une direction depuis l'extérieur.
+    /// direction : -1 = gauche, +1 = droite, 0 = aucune pression.
+    /// Appelé par RadioSystem uniquement quand la radio est focalisée.
+    /// </summary>
+    public void PushInput(float direction)
+    {
+        if (!isRunning) return;
+        needleVelocity += direction * playerPushForce * Time.deltaTime;
+    }
+
     private void HandlePlayerInput()
     {
         if (Keyboard.current == null) return;

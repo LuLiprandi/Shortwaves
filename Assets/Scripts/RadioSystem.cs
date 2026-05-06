@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public enum RadioState { Idle, Tuning, QTE, Decoded }
 
@@ -18,6 +19,7 @@ public class RadioSystem : MonoBehaviour
     [SerializeField] private RadioQTEGauge qteGauge;
     [SerializeField] private RadioDecoderPanel decoderPanel;
     [SerializeField] private SubtitleSystem subtitleSystem;
+    [SerializeField] private CameraFocusController focusController;
 
     [Header("Audio")]
     [SerializeField] private float signalFadeSpeed = 2f;
@@ -89,6 +91,8 @@ public class RadioSystem : MonoBehaviour
                 bool stillLocked = IsNearStation && nearest == activeStation && distance <= activeStation.LockRangeMHz * 1.5f;
                 if (!stillLocked)
                     ExitQTE();
+                else
+                    HandleQTEInput();
                 break;
         }
 
@@ -117,6 +121,19 @@ public class RadioSystem : MonoBehaviour
             if (decodingAudioSource.volume <= 0f && decodingAudioSource.isPlaying)
                 StopDecoding();
         }
+    }
+
+    private void HandleQTEInput()
+    {
+        if (focusController == null || !focusController.IsFocused) return;
+        if (Keyboard.current == null) return;
+
+        float direction = 0f;
+        if (Keyboard.current.leftArrowKey.isPressed)  direction -= 1f;
+        if (Keyboard.current.rightArrowKey.isPressed) direction += 1f;
+
+        if (direction != 0f)
+            qteGauge.PushInput(direction);
     }
 
     private void EnterQTE()
