@@ -36,12 +36,18 @@ public class JournalManager : MonoBehaviour
 
         if (GameStateManager.Instance != null)
             GameStateManager.Instance.OnAnomalyTriggered += HandleAnomalyTriggered;
+
+        if (journalPanel != null)
+            journalPanel.OnMessageDecoded += HandleMessageDecoded;
     }
 
     private void OnDestroy()
     {
         if (GameStateManager.Instance != null)
             GameStateManager.Instance.OnAnomalyTriggered -= HandleAnomalyTriggered;
+
+        if (journalPanel != null)
+            journalPanel.OnMessageDecoded -= HandleMessageDecoded;
     }
 
     private void Update()
@@ -63,6 +69,9 @@ public class JournalManager : MonoBehaviour
 
     public void Toggle() { if (isOpen) Close(); else Open(); }
 
+    /// <summary>Exposes the journal panel for external systems (e.g., RadioSystem).</summary>
+    public JournalPanel GetJournalPanel() => journalPanel;
+
     /// <summary>Opens the journal and locks player input.</summary>
     public void Open()
     {
@@ -74,11 +83,17 @@ public class JournalManager : MonoBehaviour
             ? data?.PostAnomalyThoughts ?? ""
             : data?.PreAnomalyThoughts  ?? "";
 
-        journalPanel.Show(GameStateManager.Instance.CurrentDay, thoughts);
+        int[]  codeSeq        = data?.CodeSequence        ?? System.Array.Empty<int>();
+        int[]  hiddenIndices  = data?.HiddenSlotIndices    ?? System.Array.Empty<int>();
+        string decodedSolution = data?.OfficialMessageDecoded ?? "";
+
+        journalPanel.Show(GameStateManager.Instance.CurrentDay, thoughts,
+            codeSeq, hiddenIndices, decodedSolution);
+
         GameStateManager.Instance.OpenBlockingUI();
 
-        if (playerController  != null) playerController.CanMove = false;
-        if (interactionSystem != null) interactionSystem.enabled = false;
+        if (playerController  != null) playerController.CanMove  = false;
+        if (interactionSystem != null) interactionSystem.enabled  = false;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
@@ -93,8 +108,8 @@ public class JournalManager : MonoBehaviour
         journalPanel.Hide();
         GameStateManager.Instance.CloseBlockingUI();
 
-        if (playerController  != null) playerController.CanMove = true;
-        if (interactionSystem != null) interactionSystem.enabled = true;
+        if (playerController  != null) playerController.CanMove  = true;
+        if (interactionSystem != null) interactionSystem.enabled  = true;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible   = false;
@@ -107,6 +122,12 @@ public class JournalManager : MonoBehaviour
         if (!isOpen) return;
         var data = GetCurrentData();
         if (data != null) journalPanel.UpdateThoughts(data.PostAnomalyThoughts);
+    }
+
+    /// <summary>Called when the player validates the correct decoded message in the journal.</summary>
+    private void HandleMessageDecoded()
+    {
+        GameStateManager.Instance?.TriggerAnomaly();
     }
 
     private JournalDayData GetCurrentData()

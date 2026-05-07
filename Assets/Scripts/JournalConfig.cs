@@ -1,7 +1,22 @@
 using UnityEngine;
 
 /// <summary>
-/// ScriptableObject — configure the journal per day.
+/// Enum defining the three decryption challenge modes for the journal decoder tab.
+/// </summary>
+public enum DecryptionMode
+{
+    /// <summary>All code numbers are pre-filled. The player only translates numbers to letters.</summary>
+    Guided  = 0,
+
+    /// <summary>Some code numbers are hidden (shown as __). The player must fill those in from the radio.</summary>
+    Partial = 1,
+
+    /// <summary>The code grid is fully empty. The player transcribes every number from the radio, then translates.</summary>
+    Full    = 2,
+}
+
+/// <summary>
+/// ScriptableObject — configures the journal per day (decoder visibility and mode).
 /// Create via Assets > Create > Shortwaves > Journal Config.
 /// </summary>
 [CreateAssetMenu(fileName = "JournalConfig", menuName = "Shortwaves/Journal Config")]
@@ -10,14 +25,14 @@ public class JournalConfig : ScriptableObject
     [System.Serializable]
     public class DayConfig
     {
-        [Tooltip("Day number this config applies to (1, 2, 3 ...).")]
+        [Tooltip("Day number this config applies to (1, 2, 3 …).")]
         public int day = 1;
 
         [Tooltip("Show the DECODAGE tab for this day.")]
         public bool hasDecoder = true;
 
-        [Tooltip("Number of digit slots shown in the decoder.")]
-        public int slotCount = 6;
+        [Tooltip("Decryption challenge mode for this day.")]
+        public DecryptionMode mode = DecryptionMode.Guided;
     }
 
     [Tooltip("One entry per day that has specific settings. Days not listed use default behaviour (no decoder).")]
@@ -39,10 +54,10 @@ public class JournalConfig : ScriptableObject
         return cfg != null && cfg.hasDecoder;
     }
 
-    /// <summary>Returns the slot count for a given day (default 6).</summary>
-    public int SlotCount(int day)
+    /// <summary>Returns the DecryptionMode for a given day (defaults to Guided).</summary>
+    public DecryptionMode GetMode(int day)
     {
         var cfg = GetDay(day);
-        return cfg != null ? cfg.slotCount : 6;
+        return cfg != null ? cfg.mode : DecryptionMode.Guided;
     }
 }

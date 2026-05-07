@@ -149,7 +149,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 6fa4a4081591ae34c89da8ee4e78f6fc, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -21.2013
+      value: -21.199
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 6fa4a4081591ae34c89da8ee4e78f6fc, type: 3}
       propertyPath: m_LocalRotation.w
@@ -7183,6 +7183,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   journalConfig: {fileID: 0}
+  decryptionKey: {fileID: 0}
 --- !u!4 &1585625292
 Transform:
   m_ObjectHideFlags: 0
@@ -8025,7 +8026,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   scrollStepDegrees: 8
-  keyTuneSpeed: 120
   minRotation: 0
   maxRotation: 270
   rotationAxis: {x: 0, y: 0, z: 1}
@@ -8568,6 +8568,7 @@ MonoBehaviour:
   qteGauge: {fileID: 1843953567}
   decoderPanel: {fileID: 2026489352}
   subtitleSystem: {fileID: 0}
+  focusController: {fileID: 0}
   signalFadeSpeed: 2
 --- !u!82 &1843953571
 AudioSource:
@@ -8845,7 +8846,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   scrollStepDegrees: 8
-  keyTuneSpeed: 120
   minRotation: 0
   maxRotation: 270
   rotationAxis: {x: 0, y: 0, z: 1}

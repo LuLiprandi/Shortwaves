@@ -178,6 +178,9 @@ public class RadioSystem : MonoBehaviour
         // Ouvrir le décodeur à slots — le joueur entre le code après avoir écouté
         decoderPanel?.Initialize(activeStation.SolutionCode);
         OnStationDecoded?.Invoke(activeStation);
+
+        // Déverrouille l'onglet décodage du journal pour le jour en cours
+        JournalManager.Instance?.GetJournalPanel()?.UnlockDecoder();
     }
 
     private void HandleQTEFail()

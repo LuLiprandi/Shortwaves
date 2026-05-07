@@ -1,13 +1,19 @@
+using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-/// <summary>Immersive notebook UI — leather cover, spiral spine, cream ruled pages, two tabs.</summary>
+/// <summary>
+/// Immersive notebook UI — leather cover, spiral spine, cream ruled pages, two tabs.
+/// The DECODAGE tab supports three modes: Guided, Partial, Full.
+/// </summary>
 public class JournalPanel : MonoBehaviour
 {
-    // Palette
-    private static readonly Color ColOverlay    = new(0f, 0f, 0f, 0.78f);
+    // ── Palette ───────────────────────────────────────────────────────────────
+
+    private static readonly Color ColOverlay    = new(0f,    0f,    0f,    0.78f);
     private static readonly Color ColShadow     = new(0.04f, 0.02f, 0.01f, 0.85f);
     private static readonly Color ColCover      = new(0.14f, 0.10f, 0.06f, 1f);
     private static readonly Color ColCoverEdge  = new(0.09f, 0.06f, 0.03f, 1f);
@@ -18,95 +24,251 @@ public class JournalPanel : MonoBehaviour
     private static readonly Color ColInkDim     = new(0.40f, 0.32f, 0.18f, 1f);
     private static readonly Color ColTabInact   = new(0.88f, 0.84f, 0.73f, 1f);
     private static readonly Color ColSlotBg     = new(0.91f, 0.87f, 0.77f, 1f);
-    private static readonly Color ColSlotActive = new(0.78f, 0.72f, 0.56f, 1f);
+    private static readonly Color ColSlotFocus  = new(0.78f, 0.72f, 0.56f, 1f);
     private static readonly Color ColSlotLine   = new(0.28f, 0.20f, 0.10f, 1f);
+    private static readonly Color ColSlotHidden = new(0.82f, 0.76f, 0.60f, 1f);
+    private static readonly Color ColCorrect    = new(0.15f, 0.55f, 0.25f, 1f);
+    private static readonly Color ColWrong      = new(0.75f, 0.20f, 0.15f, 1f);
+    private static readonly Color ColMuted      = new(0.55f, 0.45f, 0.30f, 1f);
+    private static readonly Color ColKeyOverBg  = new(0.96f, 0.93f, 0.84f, 0.97f);
 
-    // Layout — notebook fills ~98 % of 1920×1080 reference canvas
-    private const float NW = 1880f, NH = 1055f, SpineW = 80f, CoverPad = 18f;
-    private const float HeaderH = 72f, TabH = 48f, DivH = 1.5f;
-    private const float ContentTop = HeaderH + DivH + TabH + DivH;
-    private const int Holes = 15, SlotMaxLen = 3, RuleLines = 22;
+    // ── Layout ────────────────────────────────────────────────────────────────
 
-    // Prefs — keyed per day so each day keeps its own state
-    private const string PrefCodeKey = "jrn_code_d", PrefMsgKey = "jrn_msg_d";
+    private const float SpineW      = 80f;
+    private const float CoverPad    = 18f;
+    private const float HeaderH     = 72f;
+    private const float TabH        = 48f;
+    private const float DivH        = 1.5f;
+    private const float ContentTop  = HeaderH + DivH + TabH + DivH;
+    private const int   Holes       = 15;
+    private const int   RuleLines   = 22;
 
-    // Refs
-    [SerializeField] private JournalConfig journalConfig;
+    // ── Prefs ─────────────────────────────────────────────────────────────────
 
-    private TextMeshProUGUI dayTitleTmp, thoughtsTmp, journalSectionLabel;
-    private TextMeshProUGUI journalTabLabel, decoderTabLabel;
-    private GameObject journalContent, decoderContent;
-    private Image journalTabBg, decoderTabBg;
-    private GameObject decoderTabGO;          // the DECODAGE tab button — shown/hidden per day
-    private Transform  slotsRowTransform;     // rebuilt when slot count changes
+    private const string PrefCodesKey    = "jrn_codes_d";
+    private const string PrefLettersKey  = "jrn_letters_d";
+    private const string PrefDoneKey     = "jrn_done_d";
+    private const string PrefUnlockedKey = "jrn_unlocked_d";
 
-    private int      currentDay;
-    private int      activeSlotCount;
-    private string[] slotValues = new string[6];
-    private TextMeshProUGUI[] slotTexts;
-    private Image[]           slotBgs;
-    private int activeSlot;
-    private TMP_InputField messageField;
+    // ── Inspector ─────────────────────────────────────────────────────────────
 
-    private void Awake() { BuildUI(); gameObject.SetActive(false); }
+    [SerializeField] private JournalConfig  journalConfig;
+    [SerializeField] private DecryptionKey  decryptionKey;
+
+    // ── UI refs ───────────────────────────────────────────────────────────────
+
+    private TextMeshProUGUI dayTitleTmp;
+    private TextMeshProUGUI thoughtsTmp;
+    private TextMeshProUGUI journalSectionLabel;
+    private TextMeshProUGUI journalTabLabel;
+    private TextMeshProUGUI decoderTabLabel;
+    private GameObject      journalContent;
+    private GameObject      decoderContent;
+    private Image           journalTabBg;
+    private Image           decoderTabBg;
+    private GameObject      decoderTabGO;
+
+    // Decoder tab dynamic elements
+    private Transform           slotsContainer;
+    private TextMeshProUGUI     radioHintTmp;
+    private TextMeshProUGUI     feedbackTmp;
+    private Button              validateBtn;
+    private GameObject          keyOverlay;
+
+    // Per-slot state
+    private SlotData[]          slots;
+    private int                 focusedSlot = -1;
+
+    // ── State ─────────────────────────────────────────────────────────────────
+
+    private int            currentDay;
+    private DecryptionMode currentMode;
+    private bool           radioUnlocked;
+    private bool           decodingComplete;
+
+    // ── Events ────────────────────────────────────────────────────────────────
+
+    /// <summary>Fired once when the player successfully validates the decoded message.</summary>
+    public event Action OnMessageDecoded;
+
+    // ── Per-slot data ─────────────────────────────────────────────────────────
+
+    private class SlotData
+    {
+        public int             code;
+        public bool            isHidden;       // Partial: must be found via radio
+        public bool            codeResolved;   // Partial/Full: player has entered the code correctly
+        public string          letterInput;    // Current letter(s) the player typed
+        public GameObject      root;
+        public TextMeshProUGUI codeText;
+        public TMP_InputField  letterField;
+        public Image           bg;
+        public Image           focusOutline;
+    }
+
+    // ── Unity lifecycle ───────────────────────────────────────────────────────
+
+    private void Awake()
+    {
+        BuildUI();
+        gameObject.SetActive(false);
+    }
 
     private void Update()
     {
+        // Only intercept Tab when the decoder tab is visible and radio is unlocked
         if (decoderContent == null || !decoderContent.activeSelf) return;
-        if (messageField != null && messageField.isFocused) return;
-        HandleSlotInput();
+        if (decodingComplete || !radioUnlocked) return;
+
+        var kb = Keyboard.current;
+        if (kb == null) return;
+
+        if (kb.tabKey.wasPressedThisFrame)
+            MoveFocus(kb.leftShiftKey.isPressed ? -1 : 1);
+
+        // Toggle decryption key overlay with T
+        if (kb.tKey.wasPressedThisFrame)
+            ToggleKeyOverlay();
     }
 
-    /// <summary>Shows the journal for a given day. Decoder tab visibility and slot count come from JournalConfig.</summary>
-    public void Show(int day, string thoughts)
+    // ── Public API ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Opens the journal for a given day.
+    /// CodeSequence and HiddenSlotIndices come from JournalDayData.
+    /// Mode comes from JournalConfig.
+    /// </summary>
+    public void Show(int day, string thoughts, int[] codeSequence, int[] hiddenSlotIndices, string decodedSolution)
     {
         currentDay = day;
-        dayTitleTmp.text          = "Carnet  -  Jour " + day;
-        journalSectionLabel.text  = "Jour " + day + " :";
-        thoughtsTmp.text          = thoughts;
+        dayTitleTmp.text         = "Carnet  -  Jour " + day;
+        journalSectionLabel.text = "Jour " + day + " :";
+        thoughtsTmp.text         = thoughts;
 
         bool hasDecoder = journalConfig != null ? journalConfig.HasDecoder(day) : day <= 3;
-        int  slotCount  = journalConfig != null ? journalConfig.SlotCount(day)  : 6;
+        currentMode = journalConfig != null ? journalConfig.GetMode(day) : DecryptionMode.Guided;
 
         decoderTabGO.SetActive(hasDecoder);
 
-        if (hasDecoder)
-        {
-            if (slotCount != activeSlotCount)
-                RebuildSlots(slotCount);
-            LoadDecoder();
-        }
+        if (hasDecoder && codeSequence != null && codeSequence.Length > 0)
+            RebuildDecoderSlots(codeSequence, hiddenSlotIndices ?? Array.Empty<int>(), decodedSolution);
 
         SetTab(true);
         gameObject.SetActive(true);
     }
 
-    /// <summary>Persists decoder state for the current day and hides the panel.</summary>
-    public void Hide() { SaveDecoder(); gameObject.SetActive(false); }
+    /// <summary>Saves decoder state for the current day and hides the panel.</summary>
+    public void Hide()
+    {
+        SaveDecoderState();
+        gameObject.SetActive(false);
+    }
 
-    /// <summary>Updates thoughts text while panel is open.</summary>
+    /// <summary>Updates thoughts text while the panel is already open.</summary>
     public void UpdateThoughts(string t) => thoughtsTmp.text = t;
+
+    /// <summary>
+    /// Called by RadioSystem after a successful QTE for the current day.
+    /// Unlocks the decoder: reveals all codes in Guided mode, enables letter fields.
+    /// </summary>
+    public void UnlockDecoder()
+    {
+        radioUnlocked = true;
+        PlayerPrefs.SetInt(PrefUnlockedKey + currentDay, 1);
+        PlayerPrefs.Save();
+
+        if (slots == null) return;
+
+        // Guided: reveal all codes at once
+        if (currentMode == DecryptionMode.Guided)
+        {
+            foreach (var sd in slots)
+                if (!sd.codeResolved) RevealCode(sd);
+        }
+
+        RefreshRadioHint();
+        if (validateBtn != null) validateBtn.interactable = true;
+        SetFocus(FindFirstInputSlot());
+    }
+
+    /// <summary>Called by RadioSystem when the player identifies a specific slot code via radio (Partial / Full).</summary>
+    public void ResolveSlotCode(int slotIndex)
+    {
+        if (slots == null || slotIndex < 0 || slotIndex >= slots.Length) return;
+        var sd = slots[slotIndex];
+        if (sd.codeResolved) return;
+        RevealCode(sd);
+        SaveDecoderState();
+    }
+
+    // ── Decoder rebuild ───────────────────────────────────────────────────────
+
+    private void RebuildDecoderSlots(int[] codeSequence, int[] hiddenIndices, string decodedSolution)
+    {
+        // Clear previous slots
+        if (slotsContainer != null)
+        {
+            foreach (Transform child in slotsContainer)
+                Destroy(child.gameObject);
+        }
+
+        int count        = codeSequence.Length;
+        var hiddenSet    = new HashSet<int>(hiddenIndices);
+        radioUnlocked    = PlayerPrefs.GetInt(PrefUnlockedKey + currentDay, 0) == 1;
+        decodingComplete = PlayerPrefs.GetInt(PrefDoneKey     + currentDay, 0) == 1;
+
+        slots = new SlotData[count];
+        for (int i = 0; i < count; i++)
+        {
+            var sd = new SlotData();
+            sd.code     = codeSequence[i];
+            sd.isHidden = currentMode switch
+            {
+                DecryptionMode.Guided  => false,          // no slot is structurally hidden in Guided
+                DecryptionMode.Partial => hiddenSet.Contains(i),
+                DecryptionMode.Full    => true,
+                _                     => false
+            };
+            // Code is pre-visible only in Guided AND after radio unlock
+            sd.codeResolved = !sd.isHidden && radioUnlocked;
+            sd.letterInput  = "";
+            slots[i] = sd;
+            BuildSlotUI(sd, i, slotsContainer);
+        }
+
+        // Store solution (spaces stripped, uppercase)
+        if (!string.IsNullOrEmpty(decodedSolution))
+            PlayerPrefs.SetString(PrefLettersKey + currentDay + "_solution",
+                decodedSolution.Replace(" ", "").ToUpperInvariant());
+
+        LoadDecoderState();
+        RefreshRadioHint();
+        RefreshFeedback(decodedSolution);
+        SetFocus(decodingComplete || !radioUnlocked ? -1 : FindFirstInputSlot());
+    }
 
     // ── Build ─────────────────────────────────────────────────────────────────
 
     private void BuildUI()
     {
-        var c = gameObject.AddComponent<Canvas>();
-        c.renderMode = RenderMode.ScreenSpaceOverlay; c.sortingOrder = 20;
-        var sc = gameObject.AddComponent<CanvasScaler>();
-        sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        sc.referenceResolution = new Vector2(1280f, 720f); sc.matchWidthOrHeight = 0.5f;
+        var canvas = gameObject.AddComponent<Canvas>();
+        canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 20;
+
+        var scaler = gameObject.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1280f, 720f);
+        scaler.matchWidthOrHeight  = 0.5f;
+
         gameObject.AddComponent<GraphicRaycaster>();
 
         Stretch(MakeImg("Overlay", transform, ColOverlay).GetComponent<RectTransform>());
 
-        // Shadow — stretched behind notebook with slight offset
         var shRT = MakeImg("Shadow", transform, ColShadow).GetComponent<RectTransform>();
-        shRT.anchorMin = Vector2.zero; shRT.anchorMax = Vector2.one;
+        shRT.anchorMin = Vector2.zero;  shRT.anchorMax = Vector2.one;
         shRT.offsetMin = new Vector2(-9f, -9f); shRT.offsetMax = new Vector2(9f, 9f);
 
-        // Notebook — fills entire canvas with a small inset margin
-        var nb = MakeGO("Notebook", transform);
+        var nb   = MakeGO("Notebook", transform);
         var nbRT = nb.AddComponent<RectTransform>();
         nbRT.anchorMin = Vector2.zero; nbRT.anchorMax = Vector2.one;
         nbRT.offsetMin = new Vector2(6f, 6f); nbRT.offsetMax = new Vector2(-6f, -6f);
@@ -114,20 +276,24 @@ public class JournalPanel : MonoBehaviour
         BuildCoverBorder(nb.transform);
         BuildSpine(nb.transform);
 
-        var pg = MakeGO("Page", nb.transform);
+        var pg   = MakeGO("Page", nb.transform);
         var pgRT = pg.AddComponent<RectTransform>();
-        pgRT.anchorMin = Vector2.zero; pgRT.anchorMax = Vector2.one;
+        pgRT.anchorMin = Vector2.zero;  pgRT.anchorMax = Vector2.one;
         pgRT.offsetMin = new Vector2(SpineW + CoverPad, CoverPad);
         pgRT.offsetMax = new Vector2(-CoverPad, -CoverPad);
         pg.AddComponent<Image>().color = ColPage;
         BuildRules(pg.transform);
         BuildPage(pg.transform);
+
+        // Key overlay — built last so it renders on top of everything
+        keyOverlay = BuildKeyOverlay(pg.transform);
+        keyOverlay.SetActive(false);
     }
 
     private static void BuildCoverBorder(Transform p)
     {
         var img = MakeImg("Border", p, ColCoverEdge);
-        var rt = img.GetComponent<RectTransform>();
+        var rt  = img.GetComponent<RectTransform>();
         rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
         rt.offsetMin = new Vector2(10f, 10f); rt.offsetMax = new Vector2(-10f, -10f);
         img.color = new Color(ColCoverEdge.r, ColCoverEdge.g, ColCoverEdge.b, 0.35f);
@@ -135,15 +301,19 @@ public class JournalPanel : MonoBehaviour
 
     private static void BuildSpine(Transform p)
     {
-        var s = MakeGO("Spine", p);
-        var sRT = s.AddComponent<RectTransform>();
+        var s    = MakeGO("Spine", p);
+        var sRT  = s.AddComponent<RectTransform>();
         sRT.anchorMin = new Vector2(0f, 0f); sRT.anchorMax = new Vector2(0f, 1f);
-        sRT.pivot = new Vector2(0f, 0.5f); sRT.sizeDelta = new Vector2(SpineW, 0f); sRT.anchoredPosition = Vector2.zero;
+        sRT.pivot     = new Vector2(0f, 0.5f);
+        sRT.sizeDelta = new Vector2(SpineW, 0f);
+        sRT.anchoredPosition = Vector2.zero;
         s.AddComponent<Image>().color = ColCoverEdge;
 
         var eRT = MakeImg("Edge", s.transform, ColSpiral).GetComponent<RectTransform>();
         eRT.anchorMin = new Vector2(1f, 0.01f); eRT.anchorMax = new Vector2(1f, 0.99f);
-        eRT.pivot = new Vector2(1f, 0.5f); eRT.sizeDelta = new Vector2(3f, 0f); eRT.anchoredPosition = Vector2.zero;
+        eRT.pivot     = new Vector2(1f, 0.5f);
+        eRT.sizeDelta = new Vector2(3f, 0f);
+        eRT.anchoredPosition = Vector2.zero;
 
         var knob = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
         for (int i = 0; i < Holes; i++)
@@ -152,32 +322,36 @@ public class JournalPanel : MonoBehaviour
 
     private static void BuildHole(Transform p, Sprite k, int idx, float y)
     {
-        var r = MakeImg("R" + idx, p, ColSpiral); r.sprite = k; r.type = Image.Type.Simple;
+        var r   = MakeImg("R" + idx, p, ColSpiral); r.sprite = k; r.type = Image.Type.Simple;
         var rRT = r.GetComponent<RectTransform>();
-        rRT.anchorMin = rRT.anchorMax = new Vector2(0.5f, y); rRT.pivot = Vector2.one * 0.5f;
-        rRT.sizeDelta = new Vector2(26f, 26f); rRT.anchoredPosition = Vector2.zero;
+        rRT.anchorMin = rRT.anchorMax = new Vector2(0.5f, y);
+        rRT.pivot     = Vector2.one * 0.5f;
+        rRT.sizeDelta = new Vector2(26f, 26f);
+        rRT.anchoredPosition = Vector2.zero;
 
-        var h = MakeImg("H" + idx, p, ColPage); h.sprite = k; h.type = Image.Type.Simple;
+        var h   = MakeImg("H" + idx, p, ColPage); h.sprite = k; h.type = Image.Type.Simple;
         var hRT = h.GetComponent<RectTransform>();
-        hRT.anchorMin = hRT.anchorMax = new Vector2(0.5f, y); hRT.pivot = Vector2.one * 0.5f;
-        hRT.sizeDelta = new Vector2(14f, 14f); hRT.anchoredPosition = Vector2.zero;
+        hRT.anchorMin = hRT.anchorMax = new Vector2(0.5f, y);
+        hRT.pivot     = Vector2.one * 0.5f;
+        hRT.sizeDelta = new Vector2(14f, 14f);
+        hRT.anchoredPosition = Vector2.zero;
     }
 
     private static void BuildRules(Transform p)
     {
-        // Reference page height at 1280×720: 720 - 2*CoverPad = 684
         const float PageRefH = 720f - CoverPad * 2f;
-        float topFrac  = (ContentTop + 14f) / PageRefH;
-        float botFrac  = 24f / PageRefH;
+        float topFrac   = (ContentTop + 14f) / PageRefH;
+        float botFrac   = 24f / PageRefH;
         float available = 1f - topFrac - botFrac;
+
         for (int i = 0; i < RuleLines; i++)
         {
             float yAnchor = 1f - topFrac - available * (i / (float)(RuleLines - 1));
             var rt = MakeImg("Rl" + i, p, ColRule).GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, yAnchor);
-            rt.anchorMax = new Vector2(1f, yAnchor);
-            rt.pivot     = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(0f, 1f);
+            rt.anchorMin        = new Vector2(0f, yAnchor);
+            rt.anchorMax        = new Vector2(1f, yAnchor);
+            rt.pivot            = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta        = new Vector2(0f, 1f);
             rt.anchoredPosition = Vector2.zero;
         }
     }
@@ -185,40 +359,68 @@ public class JournalPanel : MonoBehaviour
     private void BuildPage(Transform p)
     {
         // Header
-        var h = MakeGO("Hdr", p); var hRT = h.AddComponent<RectTransform>();
+        var h   = MakeGO("Hdr", p);
+        var hRT = h.AddComponent<RectTransform>();
         hRT.anchorMin = new Vector2(0f, 1f); hRT.anchorMax = new Vector2(1f, 1f);
-        hRT.pivot = new Vector2(0.5f, 1f); hRT.sizeDelta = new Vector2(0f, HeaderH); hRT.anchoredPosition = Vector2.zero;
+        hRT.pivot     = new Vector2(0.5f, 1f);
+        hRT.sizeDelta = new Vector2(0f, HeaderH);
+        hRT.anchoredPosition = Vector2.zero;
 
         dayTitleTmp = MakeTMP("Title", h.transform, "Carnet  -  Jour 1", 26f, ColInk, FontStyles.Bold);
         var tRT = dayTitleTmp.GetComponent<RectTransform>();
-        Stretch(tRT); tRT.offsetMin = new Vector2(36f, 0f); tRT.offsetMax = new Vector2(-64f, 0f);
-        dayTitleTmp.alignment = TextAlignmentOptions.MidlineLeft; dayTitleTmp.characterSpacing = 1.5f;
+        Stretch(tRT); tRT.offsetMin = new Vector2(36f, 0f); tRT.offsetMax = new Vector2(-170f, 0f);
+        dayTitleTmp.alignment       = TextAlignmentOptions.MidlineLeft;
+        dayTitleTmp.characterSpacing = 1.5f;
 
         var mRT = MakeImg("Margin", h.transform, new Color(0.75f, 0.25f, 0.15f, 0.35f)).GetComponent<RectTransform>();
         mRT.anchorMin = new Vector2(0f, 0f); mRT.anchorMax = new Vector2(0f, 1f);
-        mRT.pivot = new Vector2(0f, 0.5f); mRT.sizeDelta = new Vector2(2f, 0f); mRT.anchoredPosition = new Vector2(28f, 0f);
+        mRT.pivot     = new Vector2(0f, 0.5f);
+        mRT.sizeDelta = new Vector2(2f, 0f);
+        mRT.anchoredPosition = new Vector2(28f, 0f);
+
+        // TABLE button — opens the DecryptionKey overlay
+        var tblGO = MakeGO("TableBtn", h.transform);
+        var tblRT = tblGO.AddComponent<RectTransform>();
+        tblRT.anchorMin = new Vector2(1f, 0f); tblRT.anchorMax = Vector2.one;
+        tblRT.pivot     = new Vector2(1f, 0.5f);
+        tblRT.sizeDelta = new Vector2(104f, 0f);
+        tblRT.anchoredPosition = new Vector2(-62f, 0f);
+        var tblBg  = tblGO.AddComponent<Image>(); tblBg.color = new Color(ColInkDim.r, ColInkDim.g, ColInkDim.b, 0.15f);
+        var tblBtn = tblGO.AddComponent<Button>(); tblBtn.targetGraphic = tblBg;
+        var tblNav = Navigation.defaultNavigation; tblNav.mode = Navigation.Mode.None; tblBtn.navigation = tblNav;
+        tblBtn.onClick.AddListener(ToggleKeyOverlay);
+        var tblLbl = MakeTMP("L", tblGO.transform, "TABLE  [T]", 11f, ColInkDim, FontStyles.Bold);
+        tblLbl.alignment = TextAlignmentOptions.Center; tblLbl.characterSpacing = 1f;
+        Stretch(tblLbl.GetComponent<RectTransform>());
 
         // Close button
-        var cGO = MakeGO("Close", h.transform); var cRT = cGO.AddComponent<RectTransform>();
+        var cGO = MakeGO("Close", h.transform);
+        var cRT = cGO.AddComponent<RectTransform>();
         cRT.anchorMin = new Vector2(1f, 0f); cRT.anchorMax = Vector2.one;
-        cRT.pivot = new Vector2(1f, 0.5f); cRT.sizeDelta = new Vector2(58f, 0f);
-        var cBg = cGO.AddComponent<Image>(); cBg.color = Color.clear;
+        cRT.pivot     = new Vector2(1f, 0.5f);
+        cRT.sizeDelta = new Vector2(58f, 0f);
+        var cBg  = cGO.AddComponent<Image>(); cBg.color = Color.clear;
         var cBtn = cGO.AddComponent<Button>(); cBtn.targetGraphic = cBg;
-        var noNav = Navigation.defaultNavigation; noNav.mode = Navigation.Mode.None; cBtn.navigation = noNav;
+        var noNav = Navigation.defaultNavigation; noNav.mode = Navigation.Mode.None;
+        cBtn.navigation = noNav;
         cBtn.onClick.AddListener(() => JournalManager.Instance?.Close());
         var xl = MakeTMP("X", cGO.transform, "x", 26f, ColInkDim);
-        xl.alignment = TextAlignmentOptions.Center; Stretch(xl.GetComponent<RectTransform>());
+        xl.alignment = TextAlignmentOptions.Center;
+        Stretch(xl.GetComponent<RectTransform>());
 
         HRule("HR1", p, HeaderH);
 
         // Tabs
-        var tb = MakeGO("Tabs", p); var tbRT = tb.AddComponent<RectTransform>();
+        var tb   = MakeGO("Tabs", p);
+        var tbRT = tb.AddComponent<RectTransform>();
         tbRT.anchorMin = new Vector2(0f, 1f); tbRT.anchorMax = new Vector2(1f, 1f);
-        tbRT.pivot = new Vector2(0.5f, 1f); tbRT.sizeDelta = new Vector2(0f, TabH);
+        tbRT.pivot     = new Vector2(0.5f, 1f);
+        tbRT.sizeDelta = new Vector2(0f, TabH);
         tbRT.anchoredPosition = new Vector2(0f, -(HeaderH + DivH));
+
         var hlg = tb.AddComponent<HorizontalLayoutGroup>();
         hlg.padding = new RectOffset(32, 32, 0, 0); hlg.spacing = 8f;
-        hlg.childControlWidth = false; hlg.childControlHeight = true;
+        hlg.childControlWidth     = false; hlg.childControlHeight     = true;
         hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = true;
 
         MakeTab("TabJ", tb.transform, "JOURNAL",  true,  out journalTabBg, out journalTabLabel, out _);
@@ -232,35 +434,38 @@ public class JournalPanel : MonoBehaviour
     private void MakeTab(string name, Transform p, string label, bool isJ,
         out Image bg, out TextMeshProUGUI lbl, out GameObject tabGO)
     {
-        var go = MakeGO(name, p); go.AddComponent<RectTransform>();
+        var go = MakeGO(name, p);
+        go.AddComponent<RectTransform>();
         tabGO = go;
-        bg = go.AddComponent<Image>(); bg.color = ColTabInact;
+        bg    = go.AddComponent<Image>(); bg.color = ColTabInact;
         go.AddComponent<LayoutElement>().preferredWidth = 200f;
+
         var btn = go.AddComponent<Button>();
         var nav = Navigation.defaultNavigation; nav.mode = Navigation.Mode.None;
         btn.navigation = nav; btn.targetGraphic = bg;
         btn.onClick.AddListener(() => SetTab(isJ));
+
         lbl = MakeTMP("L", go.transform, label, 13f, ColInkDim, FontStyles.Bold);
-        lbl.alignment = TextAlignmentOptions.Center; lbl.characterSpacing = 2.5f;
+        lbl.alignment        = TextAlignmentOptions.Center;
+        lbl.characterSpacing = 2.5f;
         Stretch(lbl.GetComponent<RectTransform>());
     }
 
     private GameObject BuildJournalTab(Transform p)
     {
         var root = MakeGO("JournalContent", p);
-        var rRT = root.AddComponent<RectTransform>();
+        var rRT  = root.AddComponent<RectTransform>();
         rRT.anchorMin = Vector2.zero; rRT.anchorMax = Vector2.one;
         rRT.offsetMin = Vector2.zero; rRT.offsetMax = new Vector2(0f, -ContentTop);
 
-        // Simple VLG — no ScrollRect, no ContentSizeFitter, no layout conflicts
         var vlg = root.AddComponent<VerticalLayoutGroup>();
         vlg.padding = new RectOffset(52, 52, 40, 40); vlg.spacing = 12f;
-        vlg.childControlWidth  = true;  vlg.childControlHeight  = true;
-        vlg.childForceExpandWidth = true; vlg.childForceExpandHeight = false;
+        vlg.childControlWidth     = true;  vlg.childControlHeight     = true;
+        vlg.childForceExpandWidth = true;  vlg.childForceExpandHeight = false;
 
         journalSectionLabel = MakeTMP("Sec", root.transform, "Jour 1 :", 14f, ColInkDim,
             FontStyles.Bold | FontStyles.Italic);
-        journalSectionLabel.alignment = TextAlignmentOptions.TopLeft;
+        journalSectionLabel.alignment        = TextAlignmentOptions.TopLeft;
         journalSectionLabel.characterSpacing = 1f;
         journalSectionLabel.gameObject.AddComponent<LayoutElement>().preferredHeight = 28f;
 
@@ -269,11 +474,10 @@ public class JournalPanel : MonoBehaviour
         sepGO.AddComponent<Image>().color = ColRule;
         sepGO.AddComponent<LayoutElement>().preferredHeight = 1.5f;
 
-        // Thoughts — preferred height driven by TMP text content, no LayoutElement override
         thoughtsTmp = MakeTMP("Thoughts", root.transform, "", 22f, ColInk, FontStyles.Italic);
-        thoughtsTmp.alignment = TextAlignmentOptions.TopLeft;
+        thoughtsTmp.alignment        = TextAlignmentOptions.TopLeft;
         thoughtsTmp.textWrappingMode = TextWrappingModes.Normal;
-        thoughtsTmp.lineSpacing = 4f;
+        thoughtsTmp.lineSpacing      = 4f;
         thoughtsTmp.characterSpacing = 0.3f;
 
         return root;
@@ -282,211 +486,510 @@ public class JournalPanel : MonoBehaviour
     private GameObject BuildDecoderTab(Transform p)
     {
         var root = MakeGO("DecoderContent", p);
-        var rRT = root.AddComponent<RectTransform>();
+        var rRT  = root.AddComponent<RectTransform>();
         rRT.anchorMin = Vector2.zero; rRT.anchorMax = Vector2.one;
         rRT.offsetMin = Vector2.zero; rRT.offsetMax = new Vector2(0f, -ContentTop);
 
-        var vlg = root.AddComponent<VerticalLayoutGroup>();
-        vlg.padding = new RectOffset(52, 52, 36, 36); vlg.spacing = 20f;
-        vlg.childControlWidth = true; vlg.childControlHeight = true;
-        vlg.childForceExpandWidth = true; vlg.childForceExpandHeight = false;
+        // Outer scroll for long sequences
+        var sr   = root.AddComponent<ScrollRect>();
+        sr.horizontal     = false;
+        sr.vertical       = true;
+        sr.movementType   = ScrollRect.MovementType.Clamped;
+        sr.scrollSensitivity = 30f;
 
-        SecLabel("Code", root.transform);
-        BuildSlots(root.transform, 6); // initial count; RebuildSlots() updates it when Show() changes it
+        var vpGO = MakeGO("Viewport", root.transform);
+        var vpRT = vpGO.AddComponent<RectTransform>();
+        Stretch(vpRT);
+        vpGO.AddComponent<RectMask2D>();
+        sr.viewport = vpRT;
 
-        var hint = MakeTMP("Hint", root.transform,
-            "<- ->  naviguer     chiffres: saisir     Backspace: effacer", 11f, ColInkDim, FontStyles.Italic);
-        hint.alignment = TextAlignmentOptions.TopLeft;
-        hint.gameObject.AddComponent<LayoutElement>().preferredHeight = 20f;
-        Spacer(root.transform, 4f);
+        var contentGO = MakeGO("Content", vpGO.transform);
+        var cntRT     = contentGO.AddComponent<RectTransform>();
+        cntRT.anchorMin = new Vector2(0f, 1f); cntRT.anchorMax = new Vector2(1f, 1f);
+        cntRT.pivot     = new Vector2(0.5f, 1f);
+        cntRT.sizeDelta = Vector2.zero;
+        sr.content = cntRT;
 
-        SecLabel("Message decode", root.transform);
-        messageField = BuildMsgField("MsgField", root.transform);
-        messageField.gameObject.AddComponent<LayoutElement>().preferredHeight = 180f;
+        var vlg = contentGO.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(52, 52, 36, 36); vlg.spacing = 16f;
+        vlg.childControlWidth     = true;  vlg.childControlHeight     = true;
+        vlg.childForceExpandWidth = true;  vlg.childForceExpandHeight = false;
+
+        contentGO.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        // Radio hint — hidden once radio is unlocked
+        radioHintTmp = MakeTMP("RadioHint", contentGO.transform,
+            "⚠  Syntonisez la radio pour recevoir le message avant de pouvoir décoder.",
+            13f, ColInkDim, FontStyles.Italic);
+        radioHintTmp.alignment        = TextAlignmentOptions.TopLeft;
+        radioHintTmp.textWrappingMode = TextWrappingModes.Normal;
+        radioHintTmp.gameObject.AddComponent<LayoutElement>().preferredHeight = 40f;
+
+        // Section: codes
+        SecLabel("Codes", contentGO.transform);
+
+        // Slots container — WrapGrid for long sequences
+        var scGO = MakeGO("SlotsContainer", contentGO.transform);
+        scGO.AddComponent<RectTransform>();
+        var grid = scGO.AddComponent<GridLayoutGroup>();
+        grid.cellSize        = new Vector2(72f, 90f);
+        grid.spacing         = new Vector2(10f, 10f);
+        grid.startCorner     = GridLayoutGroup.Corner.UpperLeft;
+        grid.startAxis       = GridLayoutGroup.Axis.Horizontal;
+        grid.childAlignment  = TextAnchor.UpperLeft;
+        grid.constraint      = GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = 10;
+        scGO.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        scGO.AddComponent<LayoutElement>().minHeight = 100f;
+        slotsContainer = scGO.transform;
+
+        Spacer(contentGO.transform, 8f);
+
+        // Section: feedback + validate
+        SecLabel("Résultat", contentGO.transform);
+
+        feedbackTmp = MakeTMP("Feedback", contentGO.transform,
+            "Remplissez les slots de lettres puis validez.", 13f, ColInkDim, FontStyles.Italic);
+        feedbackTmp.alignment        = TextAlignmentOptions.TopLeft;
+        feedbackTmp.textWrappingMode = TextWrappingModes.Normal;
+        feedbackTmp.gameObject.AddComponent<LayoutElement>().preferredHeight = 36f;
+
+        // Validate button
+        var btnGO = MakeGO("ValidateBtn", contentGO.transform);
+        var btnRT = btnGO.AddComponent<RectTransform>();
+        btnGO.AddComponent<LayoutElement>().preferredHeight = 44f;
+        var btnBg = btnGO.AddComponent<Image>(); btnBg.color = ColSlotLine;
+        validateBtn = btnGO.AddComponent<Button>();
+        var btnNav = Navigation.defaultNavigation; btnNav.mode = Navigation.Mode.None;
+        validateBtn.navigation    = btnNav;
+        validateBtn.targetGraphic = btnBg;
+        validateBtn.onClick.AddListener(ValidateDecoding);
+        var btnLbl = MakeTMP("BtnLbl", btnGO.transform, "VALIDER LE DÉCODAGE", 13f, ColPage, FontStyles.Bold);
+        btnLbl.alignment = TextAlignmentOptions.Center;
+        Stretch(btnLbl.GetComponent<RectTransform>());
+
         return root;
     }
 
-    private static void SecLabel(string label, Transform p)
+    // ── Slot UI construction ──────────────────────────────────────────────────
+
+    private void BuildSlotUI(SlotData sd, int index, Transform parent)
     {
-        var lbl = MakeTMP("L" + label, p, label, 13f, ColInkDim, FontStyles.Bold | FontStyles.Italic);
-        lbl.alignment = TextAlignmentOptions.TopLeft; lbl.characterSpacing = 1f;
-        lbl.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
+        var root = MakeGO("Slot" + index, parent);
+        root.AddComponent<RectTransform>();
+        sd.root = root;
 
-        // Explicit height — prevents Image from stretching to fill parent
-        var ln = MakeGO("Ln" + label, p);
-        var lnRT = ln.AddComponent<RectTransform>(); lnRT.sizeDelta = new Vector2(0f, 1f);
-        ln.AddComponent<Image>().color = ColRule;
-        ln.AddComponent<LayoutElement>().preferredHeight = 1f;
-    }
+        // Background — Grid controls the root size (72×90), children use absolute positions
+        sd.bg = root.AddComponent<Image>();
+        sd.bg.color = sd.codeResolved ? ColSlotBg : ColSlotHidden;
 
-    private void BuildSlots(Transform p, int count = 6)
-    {
-        var row = MakeGO("Slots", p); row.AddComponent<RectTransform>();
-        slotsRowTransform = row.transform;
-        var hlg = row.AddComponent<HorizontalLayoutGroup>();
-        hlg.childControlWidth = false; hlg.childControlHeight = true;
-        hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = true; hlg.spacing = 18f;
-        row.AddComponent<LayoutElement>().preferredHeight = 88f;
+        // Focus outline (slightly outside)
+        var outlineGO = MakeGO("Outline", root.transform);
+        var outRT     = outlineGO.AddComponent<RectTransform>();
+        Stretch(outRT);
+        outRT.offsetMin = new Vector2(-2f, -2f); outRT.offsetMax = new Vector2(2f, 2f);
+        sd.focusOutline = outlineGO.AddComponent<Image>();
+        sd.focusOutline.color = Color.clear;
 
-        slotValues      = new string[count];
-        slotTexts       = new TextMeshProUGUI[count];
-        slotBgs         = new Image[count];
-        activeSlotCount = count;
+        // Bottom underline
+        var lnRT = MakeImg("Line", root.transform, ColSlotLine).GetComponent<RectTransform>();
+        lnRT.anchorMin       = new Vector2(0f, 0f); lnRT.anchorMax = new Vector2(1f, 0f);
+        lnRT.pivot           = new Vector2(0.5f, 0f);
+        lnRT.sizeDelta       = new Vector2(0f, 3f);
+        lnRT.anchoredPosition = Vector2.zero;
 
-        for (int i = 0; i < count; i++)
-        {
-            var s = MakeGO("S" + i, row.transform);
-            s.AddComponent<RectTransform>().sizeDelta = new Vector2(96f, 88f);
-            slotBgs[i] = s.AddComponent<Image>(); slotBgs[i].color = ColSlotBg;
-            slotTexts[i] = MakeTMP("T", s.transform, "_", 30f, ColInk, FontStyles.Bold);
-            slotTexts[i].alignment = TextAlignmentOptions.Center;
-            Stretch(slotTexts[i].GetComponent<RectTransform>());
-            var lRT = MakeImg("L", s.transform, ColSlotLine).GetComponent<RectTransform>();
-            lRT.anchorMin = new Vector2(0f, 0f); lRT.anchorMax = new Vector2(1f, 0f);
-            lRT.pivot = new Vector2(0.5f, 0f); lRT.sizeDelta = new Vector2(0f, 3f); lRT.anchoredPosition = Vector2.zero;
-            slotValues[i] = "";
-        }
-    }
+        // Code number — anchored from top, absolute height 42px
+        sd.codeText = MakeTMP("Code", root.transform, GetCodeDisplay(sd), 16f, ColInk, FontStyles.Bold);
+        sd.codeText.alignment = TextAlignmentOptions.Center;
+        var ctRT = sd.codeText.GetComponent<RectTransform>();
+        ctRT.anchorMin       = new Vector2(0f, 1f); ctRT.anchorMax = new Vector2(1f, 1f);
+        ctRT.pivot           = new Vector2(0.5f, 1f);
+        ctRT.sizeDelta       = new Vector2(0f, 42f);
+        ctRT.anchoredPosition = Vector2.zero;
+        if (!sd.codeResolved) sd.codeText.color = ColMuted;
 
-    /// <summary>Destroys the current slot row and creates a new one with the requested count.</summary>
-    private void RebuildSlots(int count)
-    {
-        if (slotsRowTransform != null) Destroy(slotsRowTransform.gameObject);
-        // The decoder VLG parent is decoderContent; insert after its first 2 children (SecLabel = 2 GOs).
-        BuildSlots(decoderContent.transform, count);
-        slotsRowTransform.SetSiblingIndex(2);
-    }
+        // Letter input — anchored from bottom, absolute height 40px
+        var fieldGO = MakeGO("LetterField" + index, root.transform);
+        var fieldRT = fieldGO.AddComponent<RectTransform>();
+        fieldRT.anchorMin       = new Vector2(0f, 0f); fieldRT.anchorMax = new Vector2(1f, 0f);
+        fieldRT.pivot           = new Vector2(0.5f, 0f);
+        fieldRT.sizeDelta       = new Vector2(-8f, 40f);
+        fieldRT.anchoredPosition = new Vector2(0f, 5f);
+        fieldGO.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.3f);
 
-    private static TMP_InputField BuildMsgField(string name, Transform p)
-    {
-        var go = MakeGO(name, p); go.AddComponent<RectTransform>();
-        go.AddComponent<Image>().color = ColSlotBg;
-        var field = go.AddComponent<TMP_InputField>();
-
-        var aGO = MakeGO("A", go.transform); var aRT = aGO.AddComponent<RectTransform>();
-        Stretch(aRT); aRT.offsetMin = new Vector2(16f, 12f); aRT.offsetMax = new Vector2(-16f, -12f);
+        var field = fieldGO.AddComponent<TMP_InputField>();
+        var aGO   = MakeGO("A", fieldGO.transform);
+        var aRT   = aGO.AddComponent<RectTransform>();
+        Stretch(aRT); aRT.offsetMin = new Vector2(4f, 2f); aRT.offsetMax = new Vector2(-4f, -2f);
         aGO.AddComponent<RectMask2D>();
 
-        var tGO = MakeGO("T", aGO.transform); Stretch(tGO.AddComponent<RectTransform>());
+        var tGO = MakeGO("T", aGO.transform);
+        Stretch(tGO.AddComponent<RectTransform>());
         var tmp = tGO.AddComponent<TextMeshProUGUI>();
-        tmp.fontSize = 17f; tmp.color = ColInk;
-        tmp.alignment = TextAlignmentOptions.TopLeft; tmp.textWrappingMode = TextWrappingModes.Normal;
+        tmp.fontSize = 18f; tmp.color = ColInk; tmp.fontStyle = FontStyles.Bold;
+        tmp.alignment = TextAlignmentOptions.Center;
 
-        var phGO = MakeGO("Ph", aGO.transform); Stretch(phGO.AddComponent<RectTransform>());
-        var ph = phGO.AddComponent<TextMeshProUGUI>();
-        ph.text = "Saisir le message decode..."; ph.fontSize = 17f;
-        ph.color = ColInkDim; ph.fontStyle = FontStyles.Italic;
-        ph.alignment = TextAlignmentOptions.TopLeft; ph.textWrappingMode = TextWrappingModes.Normal;
+        field.textViewport   = aRT;
+        field.textComponent  = tmp;
+        field.caretColor     = ColInk;
+        field.selectionColor = new Color(ColInk.r, ColInk.g, ColInk.b, 0.22f);
+        field.characterLimit = 3;
+        field.lineType       = TMP_InputField.LineType.SingleLine;
+        field.contentType    = TMP_InputField.ContentType.Standard;
+        field.interactable   = sd.codeResolved && !decodingComplete;
+        var fNav = Navigation.defaultNavigation; fNav.mode = Navigation.Mode.None;
+        field.navigation = fNav;
+        sd.letterField = field;
 
-        field.textViewport = aRT; field.textComponent = tmp; field.placeholder = ph;
-        field.caretColor = ColInk; field.selectionColor = new Color(ColInk.r, ColInk.g, ColInk.b, 0.22f);
-        field.lineType = TMP_InputField.LineType.MultiLineNewline;
-        field.contentType = TMP_InputField.ContentType.Standard;
-        return field;
+        int captured = index;
+        field.onValueChanged.AddListener(_ => OnLetterChanged(captured));
+        field.onSelect.AddListener(     _ => SetFocus(captured));
     }
 
-    // ── Logic ─────────────────────────────────────────────────────────────────
+    // ── Code display ──────────────────────────────────────────────────────────
 
-    private void SetTab(bool isJ)
+    private string GetCodeDisplay(SlotData sd) => sd.codeResolved ? sd.code.ToString() : "__";
+
+    private void RevealCode(SlotData sd)
     {
-        journalContent.SetActive(isJ); decoderContent.SetActive(!isJ);
-        journalTabBg.color = isJ ? ColPage : ColTabInact;
-        decoderTabBg.color = isJ ? ColTabInact : ColPage;
-        journalTabLabel.color = isJ ? ColInk : ColInkDim;
-        decoderTabLabel.color = isJ ? ColInkDim : ColInk;
-        if (!isJ) RefreshSlots();
+        sd.codeResolved          = true;
+        sd.codeText.text         = sd.code.ToString();
+        sd.codeText.color        = ColInk;
+        sd.bg.color              = ColSlotBg;
+        sd.letterField.interactable = !decodingComplete;
     }
 
-    private void HandleSlotInput()
-    {
-        var kb = Keyboard.current; if (kb == null) return;
-        if (kb.leftArrowKey.wasPressedThisFrame  && activeSlot > 0)                  { activeSlot--; RefreshSlots(); }
-        if (kb.rightArrowKey.wasPressedThisFrame && activeSlot < activeSlotCount - 1) { activeSlot++; RefreshSlots(); }
+    // ── Decoder logic ─────────────────────────────────────────────────────────
 
-        for (int d = 0; d <= 9; d++)
+    private void OnLetterChanged(int index)
+    {
+        if (slots == null || index >= slots.Length) return;
+        slots[index].letterInput = slots[index].letterField.text;
+    }
+
+    /// <summary>Called by the Validate button.</summary>
+    private void ValidateDecoding()
+    {
+        if (slots == null || decodingComplete) return;
+
+        if (!radioUnlocked)
         {
-            if (!DigitDown(kb, d)) continue;
-            if (slotValues[activeSlot].Length >= SlotMaxLen) break;
-            slotValues[activeSlot] += d.ToString();
-            if (slotValues[activeSlot].Length >= SlotMaxLen && activeSlot < activeSlotCount - 1) activeSlot++;
-            RefreshSlots(); break;
+            SetFeedback("Syntonisez d'abord la radio pour recevoir le message.", ColWrong);
+            return;
         }
 
-        if (kb.backspaceKey.wasPressedThisFrame)
+        foreach (var sd in slots)
         {
-            if (slotValues[activeSlot].Length > 0) slotValues[activeSlot] = slotValues[activeSlot][..^1];
-            else if (activeSlot > 0) { activeSlot--; if (slotValues[activeSlot].Length > 0) slotValues[activeSlot] = slotValues[activeSlot][..^1]; }
-            RefreshSlots();
+            if (!sd.codeResolved)
+            {
+                SetFeedback("Des codes radio manquent encore — continuez d'écouter.", ColWrong);
+                return;
+            }
+        }
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var sd in slots)
+            sb.Append(sd.letterField != null ? sd.letterField.text.Trim() : "");
+
+        string playerAnswer  = sb.ToString().ToUpperInvariant();
+        string savedSolution = PlayerPrefs.GetString(PrefLettersKey + currentDay + "_solution", "");
+
+        if (string.IsNullOrEmpty(savedSolution))
+        {
+            MarkDecodingComplete();   // no solution configured: sandbox mode
+            return;
+        }
+
+        if (playerAnswer == savedSolution)
+            MarkDecodingComplete();
+        else
+            SetFeedback("Message incorrect — vérifiez votre traduction.", ColWrong);
+    }
+
+    private void MarkDecodingComplete()
+    {
+        decodingComplete = true;
+        SetFeedback("✓  MESSAGE DÉCODÉ — Anomalie déclenchée.", ColCorrect);
+
+        if (validateBtn != null) validateBtn.interactable = false;
+        foreach (var sd in slots)
+            if (sd.letterField != null) sd.letterField.interactable = false;
+
+        SaveDecoderState();
+        OnMessageDecoded?.Invoke();
+    }
+
+    private void SetFeedback(string msg, Color col)
+    {
+        if (feedbackTmp == null) return;
+        feedbackTmp.text      = msg;
+        feedbackTmp.color     = col;
+        feedbackTmp.fontStyle = col == ColCorrect ? FontStyles.Bold : FontStyles.Italic;
+    }
+
+    private void RefreshRadioHint()
+    {
+        if (radioHintTmp != null)
+            radioHintTmp.gameObject.SetActive(!radioUnlocked);
+        if (validateBtn != null)
+            validateBtn.interactable = radioUnlocked && !decodingComplete;
+    }
+
+    private void RefreshFeedback(string decodedSolution)
+    {
+        if (decodingComplete)
+        {
+            SetFeedback("✓  MESSAGE DÉCODÉ — Anomalie déclenchée.", ColCorrect);
+            if (validateBtn != null) validateBtn.interactable = false;
+            return;
+        }
+
+        if (!radioUnlocked)
+        {
+            SetFeedback("Syntonisez la radio pour débloquer le décodage.", ColInkDim);
+            return;
+        }
+
+        string hint = currentMode switch
+        {
+            DecryptionMode.Guided  => "Traduisez chaque code en lettre, puis validez.",
+            DecryptionMode.Partial => "Complétez les codes manquants via la radio, puis traduisez et validez.",
+            DecryptionMode.Full    => "Transcrivez tous les codes depuis la radio, puis traduisez et validez.",
+            _                     => "Remplissez les slots puis validez."
+        };
+        SetFeedback(hint, ColInkDim);
+    }
+
+    // ── Key overlay ───────────────────────────────────────────────────────────
+
+    private GameObject BuildKeyOverlay(Transform page)
+    {
+        var ov   = MakeGO("KeyOverlay", page);
+        var ovRT = ov.AddComponent<RectTransform>();
+        Stretch(ovRT);
+        ovRT.offsetMin = new Vector2(30f, 30f); ovRT.offsetMax = new Vector2(-30f, -30f);
+        ov.AddComponent<Image>().color = ColKeyOverBg;
+
+        var vlg = ov.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(36, 36, 24, 24); vlg.spacing = 10f;
+        vlg.childControlWidth = true; vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = true; vlg.childForceExpandHeight = false;
+
+        var title = MakeTMP("Title", ov.transform, "TABLEAU DE DÉCODAGE", 15f, ColInk, FontStyles.Bold);
+        title.alignment = TextAlignmentOptions.Center; title.characterSpacing = 2f;
+        title.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
+
+        var sep = MakeGO("Sep", ov.transform);
+        sep.AddComponent<RectTransform>(); sep.AddComponent<Image>().color = ColRule;
+        sep.AddComponent<LayoutElement>().preferredHeight = 1.5f;
+
+        var body = MakeTMP("Body", ov.transform, BuildKeyText(), 13f, ColInk);
+        body.alignment = TextAlignmentOptions.TopLeft;
+        body.textWrappingMode = TextWrappingModes.Normal;
+        body.lineSpacing = 6f; body.characterSpacing = 0.5f;
+
+        var close = MakeTMP("Close", ov.transform, "[ Fermer — touche  T ]", 11f, ColInkDim, FontStyles.Italic);
+        close.alignment = TextAlignmentOptions.Center;
+        close.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
+
+        return ov;
+    }
+
+    private string BuildKeyText()
+    {
+        if (decryptionKey == null || decryptionKey.entries == null || decryptionKey.entries.Length == 0)
+            return "Assignez un asset DecryptionKey dans l'Inspector de JournalPanel pour afficher la table.";
+
+        var sb = new System.Text.StringBuilder();
+        int col = 0;
+        foreach (var e in decryptionKey.entries)
+        {
+            sb.Append(e.code.ToString().PadLeft(2)).Append(" → ").Append(e.letter).Append("    ");
+            if (++col % 9 == 0) sb.AppendLine();
+        }
+        return sb.ToString().TrimEnd();
+    }
+
+    private void ToggleKeyOverlay()
+    {
+        if (keyOverlay == null) return;
+        keyOverlay.SetActive(!keyOverlay.activeSelf);
+    }
+
+    // ── Focus management ──────────────────────────────────────────────────────
+
+    private void SetFocus(int index)
+    {
+        // Clear previous focus
+        if (focusedSlot >= 0 && focusedSlot < (slots?.Length ?? 0))
+        {
+            var prev = slots[focusedSlot];
+            prev.bg.color           = prev.codeResolved ? ColSlotBg : ColSlotHidden;
+            prev.focusOutline.color = Color.clear;
+        }
+
+        focusedSlot = index;
+        if (index < 0 || slots == null || index >= slots.Length) return;
+
+        var sd = slots[index];
+        if (!sd.codeResolved) { focusedSlot = -1; return; }
+
+        sd.bg.color           = ColSlotFocus;
+        sd.focusOutline.color = new Color(ColInk.r, ColInk.g, ColInk.b, 0.4f);
+        sd.letterField.Select();
+    }
+
+    private void MoveFocus(int delta)
+    {
+        if (slots == null) return;
+        int next = focusedSlot + delta;
+        while (next >= 0 && next < slots.Length)
+        {
+            if (slots[next].codeResolved) { SetFocus(next); return; }
+            next += delta;
         }
     }
 
-    private void RefreshSlots()
+    private int FindFirstInputSlot()
     {
-        for (int i = 0; i < activeSlotCount; i++)
-        {
-            if (slotTexts[i] == null) continue;
-            slotTexts[i].text = slotValues[i].Length > 0 ? slotValues[i] : "_";
-            slotBgs[i].color  = i == activeSlot ? ColSlotActive : ColSlotBg;
-        }
+        if (slots == null) return -1;
+        for (int i = 0; i < slots.Length; i++)
+            if (slots[i].codeResolved) return i;
+        return -1;
     }
 
-    private void SaveDecoder()
+    // ── Mode label ────────────────────────────────────────────────────────────
+
+    // (removed — mode is not shown to the player)
+
+    // ── Persistence ───────────────────────────────────────────────────────────
+
+    private void SaveDecoderState()
     {
-        PlayerPrefs.SetString(PrefCodeKey + currentDay, string.Join("/", slotValues));
-        PlayerPrefs.SetString(PrefMsgKey  + currentDay, messageField?.text ?? "");
+        if (slots == null) return;
+
+        var resolved = new string[slots.Length];
+        var letters  = new string[slots.Length];
+        for (int i = 0; i < slots.Length; i++)
+        {
+            resolved[i] = slots[i].codeResolved ? "1" : "0";
+            letters[i]  = slots[i].letterField  != null ? slots[i].letterField.text : "";
+        }
+
+        PlayerPrefs.SetString(PrefCodesKey    + currentDay, string.Join("|", resolved));
+        PlayerPrefs.SetString(PrefLettersKey  + currentDay, string.Join("|", letters));
+        PlayerPrefs.SetInt   (PrefDoneKey     + currentDay, decodingComplete ? 1 : 0);
         PlayerPrefs.Save();
     }
 
-    private void LoadDecoder()
+    private void LoadDecoderState()
     {
-        var saved = PlayerPrefs.GetString(PrefCodeKey + currentDay, "");
-        if (!string.IsNullOrEmpty(saved))
-        { var parts = saved.Split('/'); for (int i = 0; i < activeSlotCount && i < parts.Length; i++) slotValues[i] = parts[i]; }
-        else { for (int i = 0; i < activeSlotCount; i++) slotValues[i] = ""; }
-        if (messageField != null) messageField.text = PlayerPrefs.GetString(PrefMsgKey + currentDay, "");
-        activeSlot = 0; RefreshSlots();
+        if (slots == null) return;
+
+        string resolvedRaw = PlayerPrefs.GetString(PrefCodesKey   + currentDay, "");
+        string lettersRaw  = PlayerPrefs.GetString(PrefLettersKey + currentDay, "");
+
+        string[] resolved = string.IsNullOrEmpty(resolvedRaw) ? Array.Empty<string>() : resolvedRaw.Split('|');
+        string[] letters  = string.IsNullOrEmpty(lettersRaw)  ? Array.Empty<string>() : lettersRaw.Split('|');
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            var sd = slots[i];
+
+            // Restore previously resolved codes (Partial/Full saved from prior sessions)
+            if (!sd.codeResolved && i < resolved.Length && resolved[i] == "1")
+                RevealCode(sd);
+
+            // Restore letter input
+            if (sd.codeResolved && i < letters.Length && !string.IsNullOrEmpty(letters[i]))
+            {
+                sd.letterInput      = letters[i];
+                sd.letterField.text = letters[i];
+            }
+
+            // Apply interactability
+            if (sd.letterField != null)
+                sd.letterField.interactable = sd.codeResolved && !decodingComplete;
+        }
+
+        if (validateBtn != null)
+            validateBtn.interactable = radioUnlocked && !decodingComplete;
+    }
+
+    // ── Tab switching ─────────────────────────────────────────────────────────
+
+    private void SetTab(bool isJ)
+    {
+        journalContent.SetActive(isJ);
+        decoderContent.SetActive(!isJ);
+        journalTabBg.color    = isJ ? ColPage     : ColTabInact;
+        decoderTabBg.color    = isJ ? ColTabInact : ColPage;
+        journalTabLabel.color = isJ ? ColInk      : ColInkDim;
+        decoderTabLabel.color = isJ ? ColInkDim   : ColInk;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    private static void SecLabel(string label, Transform p)
+    {
+        var lbl = MakeTMP("L" + label, p, label, 13f, ColInkDim, FontStyles.Bold | FontStyles.Italic);
+        lbl.alignment        = TextAlignmentOptions.TopLeft;
+        lbl.characterSpacing = 1f;
+        lbl.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
+
+        var ln   = MakeGO("Ln" + label, p);
+        var lnRT = ln.AddComponent<RectTransform>();
+        lnRT.sizeDelta = new Vector2(0f, 1f);
+        ln.AddComponent<Image>().color = ColRule;
+        ln.AddComponent<LayoutElement>().preferredHeight = 1f;
+    }
+
+    private static void Spacer(Transform parent, float h)
+    {
+        var go = MakeGO("Sp", parent);
+        go.AddComponent<RectTransform>();
+        go.AddComponent<LayoutElement>().preferredHeight = h;
+    }
+
     private static GameObject MakeGO(string n, Transform parent)
-    { var go = new GameObject(n); go.transform.SetParent(parent, false); return go; }
+    {
+        var go = new GameObject(n);
+        go.transform.SetParent(parent, false);
+        return go;
+    }
 
     private static Image MakeImg(string n, Transform parent, Color col)
-    { var go = MakeGO(n, parent); go.AddComponent<RectTransform>(); var img = go.AddComponent<Image>(); img.color = col; return img; }
+    {
+        var go  = MakeGO(n, parent);
+        go.AddComponent<RectTransform>();
+        var img = go.AddComponent<Image>();
+        img.color = col;
+        return img;
+    }
 
-    private static TextMeshProUGUI MakeTMP(string n, Transform parent, string text, float size, Color col, FontStyles style = FontStyles.Normal)
-    { var go = MakeGO(n, parent); go.AddComponent<RectTransform>(); var t = go.AddComponent<TextMeshProUGUI>(); t.text = text; t.fontSize = size; t.color = col; t.fontStyle = style; return t; }
+    private static TextMeshProUGUI MakeTMP(string n, Transform parent, string text,
+        float size, Color col, FontStyles style = FontStyles.Normal)
+    {
+        var go = MakeGO(n, parent);
+        go.AddComponent<RectTransform>();
+        var t = go.AddComponent<TextMeshProUGUI>();
+        t.text = text; t.fontSize = size; t.color = col; t.fontStyle = style;
+        return t;
+    }
 
     private static void HRule(string n, Transform parent, float fromTop)
     {
         var rt = MakeImg(n, parent, ColRule).GetComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.01f, 1f); rt.anchorMax = new Vector2(0.99f, 1f);
-        rt.pivot = new Vector2(0.5f, 1f); rt.sizeDelta = new Vector2(0f, DivH);
+        rt.anchorMin        = new Vector2(0.01f, 1f);
+        rt.anchorMax        = new Vector2(0.99f, 1f);
+        rt.pivot            = new Vector2(0.5f, 1f);
+        rt.sizeDelta        = new Vector2(0f, DivH);
         rt.anchoredPosition = new Vector2(0f, -fromTop);
     }
 
-    private static void Spacer(Transform parent, float h)
-    { var go = MakeGO("Sp", parent); go.AddComponent<RectTransform>(); go.AddComponent<LayoutElement>().preferredHeight = h; }
-
     private static void Stretch(RectTransform rt)
-    { rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero; }
-
-    private static void Center(RectTransform rt, float w, float h, Vector2 offset = default)
-    { rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f); rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(w, h); rt.anchoredPosition = offset; }
-
-    private static bool DigitDown(Keyboard kb, int d) => d switch
     {
-        0 => kb.digit0Key.wasPressedThisFrame || kb.numpad0Key.wasPressedThisFrame,
-        1 => kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame,
-        2 => kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame,
-        3 => kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame,
-        4 => kb.digit4Key.wasPressedThisFrame || kb.numpad4Key.wasPressedThisFrame,
-        5 => kb.digit5Key.wasPressedThisFrame || kb.numpad5Key.wasPressedThisFrame,
-        6 => kb.digit6Key.wasPressedThisFrame || kb.numpad6Key.wasPressedThisFrame,
-        7 => kb.digit7Key.wasPressedThisFrame || kb.numpad7Key.wasPressedThisFrame,
-        8 => kb.digit8Key.wasPressedThisFrame || kb.numpad8Key.wasPressedThisFrame,
-        9 => kb.digit9Key.wasPressedThisFrame || kb.numpad9Key.wasPressedThisFrame,
-        _ => false
-    };
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+    }
 }
