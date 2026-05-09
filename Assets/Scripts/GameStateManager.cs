@@ -126,15 +126,17 @@ public class GameStateManager : MonoBehaviour
 
     private void SaveState()
     {
-        PlayerPrefs.SetInt(PrefDay,         CurrentDay);
-        PlayerPrefs.SetInt(PrefPostAnomaly, IsPostAnomaly ? 1 : 0);
+        PlayerPrefs.SetInt(PrefDay, CurrentDay);
+        // IsPostAnomaly is not saved — always resets to false on next launch.
         PlayerPrefs.Save();
     }
 
     private void LoadState()
     {
-        CurrentDay    = PlayerPrefs.GetInt(PrefDay,         1);
-        IsPostAnomaly = PlayerPrefs.GetInt(PrefPostAnomaly, 0) == 1;
+        CurrentDay = PlayerPrefs.GetInt(PrefDay, 1);
+        // IsPostAnomaly is intentionally NOT restored: every session starts in pre-anomaly state
+        // so the journal always shows pre-anomaly thoughts and the anomaly sequence can replay.
+        IsPostAnomaly = false;
     }
 
 #if UNITY_EDITOR

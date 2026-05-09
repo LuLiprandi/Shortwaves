@@ -1,13 +1,15 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 /// <summary>
-/// Orchestrates the Day-1 anomaly sequence once the player decodes the journal message:
-///   1. Journal hides (handled by JournalManager before this is called).
-///   2. Radio buzzes and snaps to 100 MHz.
-///   3. Woman's voice plays once, no QTE.
-///   4. Radio returns to static.
-///   5. Physical carnet tilts on the desk, revealing AnomalieJ1.
+/// Orchestrates the anomaly sequence once the player validates the journal decode:
+///   1. Journal closes (handled by JournalManager before this is called).
+///   2. Radio snaps to 100 MHz and plays the anomaly voice clip.
+///   3. AnomalieJ1 sprite overlays the full screen.
+///   4. Player presses Escape or clicks to dismiss the overlay.
+///   5. Player regains full control.
 /// </summary>
 public class AnomalySequencer : MonoBehaviour
 {
@@ -18,49 +20,36 @@ public class AnomalySequencer : MonoBehaviour
     [Tooltip("Target frequency for the anomaly broadcast (MHz). Knob will snap here.")]
     [SerializeField] private float anomalyFrequencyMHz = 100f;
 
-    [Tooltip("Anomaly voice clip — woman's voice played once.")]
+    [Tooltip("Anomaly voice clip played once at 100 MHz.")]
     [SerializeField] private AudioClip anomalyVoiceClip;
 
     [Tooltip("Optional subtitles for the anomaly voice clip.")]
     [SerializeField] private SubtitleEntry[] anomalySubtitles = System.Array.Empty<SubtitleEntry>();
 
-    [Header("Desk props")]
-    [Tooltip("The physical carnet (notebook) GameObject in the scene.")]
-    [SerializeField] private Transform carnet;
+    [Header("AnomalieJ1 Overlay")]
+    [Tooltip("Sprite shown fullscreen after the anomaly broadcast.")]
+    [SerializeField] private Sprite anomalieJ1Sprite;
 
-    [Tooltip("Target local rotation for the tilted carnet (Euler angles).")]
-    [SerializeField] private Vector3 carnetTiltEuler = new Vector3(15f, 354.12f, 20f);
+    [Tooltip("Tint for the overlay background.")]
+    [SerializeField] private Color overlayBackgroundColor = new Color(0f, 0f, 0f, 0.85f);
 
-    [Tooltip("Duration in seconds for the carnet tilt animation.")]
-    [SerializeField] private float carnetTiltDuration = 0.6f;
+    [Tooltip("Delay in seconds between end of voice clip and overlay appearing.")]
+    [SerializeField] private float overlayDelay = 0.5f;
 
-    [Tooltip("Delay in seconds after the voice clip ends before tilting the carnet.")]
-    [SerializeField] private float carnetTiltDelay = 0.8f;
-
-    [Header("AnomalieJ1")]
-    [Tooltip("The AnomalieJ1 message object to reveal on the desk.")]
-    [SerializeField] private GameObject anomalieJ1;
-
-    // Frequency range must match RadioSystem — default 88-108
+    // Frequency range must match RadioSystem defaults
     private const float FrequencyMin = 88f;
     private const float FrequencyMax = 108f;
 
     private bool sequencePlayed;
-    private Quaternion carnetOriginalRotation;
+    private GameObject overlayRoot;
+
+    private FirstPersonController playerController;
+    private InteractionSystem     interactionSystem;
 
     private void Awake()
     {
-        // Snapshot the carnet's starting rotation so it can be restored on next launch
-        if (carnet != null)
-            carnetOriginalRotation = carnet.localRotation;
-
-        // Always start with AnomalieJ1 hidden, regardless of editor/previous-session state
-        if (anomalieJ1 != null)
-            anomalieJ1.SetActive(false);
-
-        // Always reset the carnet to its original rotation at game start
-        if (carnet != null)
-            carnet.localRotation = carnetOriginalRotation;
+        playerController  = FindFirstObjectByType<FirstPersonController>();
+        interactionSystem = FindFirstObjectByType<InteractionSystem>();
     }
 
     /// <summary>
@@ -74,57 +63,139 @@ public class AnomalySequencer : MonoBehaviour
         StartCoroutine(AnomalyRoutine());
     }
 
+    // ── Sequence ──────────────────────────────────────────────────────────────
+
     private IEnumerator AnomalyRoutine()
     {
-        // Brief pause after journal close before anything happens
+        // Brief pause after journal closes
         yield return new WaitForSeconds(0.5f);
 
-        // Compute normalized knob position for 100 MHz
         float normalized = Mathf.InverseLerp(FrequencyMin, FrequencyMax, anomalyFrequencyMHz);
 
-        // Trigger the anomaly broadcast on the radio (buzz → voice → static)
         if (radioSystem != null)
         {
             radioSystem.TriggerAnomalyBroadcast(anomalyVoiceClip, normalized,
                 anomalySubtitles.Length > 0 ? anomalySubtitles : null);
 
-            // Wait for the broadcast to complete
             bool broadcastDone = false;
             radioSystem.OnAnomalyBroadcastComplete += () => broadcastDone = true;
             yield return new WaitUntil(() => broadcastDone);
         }
         else if (anomalyVoiceClip != null)
         {
-            // Fallback: no radio reference, just wait for clip length
             yield return new WaitForSeconds(anomalyVoiceClip.length);
         }
 
-        // Delay before visual anomaly
-        yield return new WaitForSeconds(carnetTiltDelay);
+        yield return new WaitForSeconds(overlayDelay);
 
-        // Reveal AnomalieJ1
-        if (anomalieJ1 != null)
-            anomalieJ1.SetActive(true);
+        // Show the fullscreen overlay and wait for player to dismiss it
+        ShowOverlay();
+        yield return new WaitUntil(() => overlayRoot == null || !overlayRoot.activeSelf);
 
-        // Tilt the carnet
-        if (carnet != null)
-            yield return StartCoroutine(TiltCarnet());
+        // Release radio focus and restore player control
+        if (radioSystem != null)
+            radioSystem.ReleaseAfterAnomaly();
+        else
+            RestorePlayerControl();
     }
 
-    private IEnumerator TiltCarnet()
-    {
-        Quaternion startRot = carnet.localRotation;
-        Quaternion endRot   = Quaternion.Euler(carnetTiltEuler);
-        float      elapsed  = 0f;
+    // ── Overlay ───────────────────────────────────────────────────────────────
 
-        while (elapsed < carnetTiltDuration)
+    private void ShowOverlay()
+    {
+        overlayRoot = new GameObject("AnomalieJ1_Overlay");
+
+        var canvas             = overlayRoot.AddComponent<Canvas>();
+        canvas.renderMode      = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder    = 100;
+        overlayRoot.AddComponent<CanvasScaler>();
+        overlayRoot.AddComponent<GraphicRaycaster>();
+
+        // Dark background
+        var bgGO  = new GameObject("Background");
+        bgGO.transform.SetParent(overlayRoot.transform, false);
+        var bgRT  = bgGO.AddComponent<RectTransform>();
+        bgRT.anchorMin = Vector2.zero;
+        bgRT.anchorMax = Vector2.one;
+        bgRT.offsetMin = bgRT.offsetMax = Vector2.zero;
+        bgGO.AddComponent<Image>().color = overlayBackgroundColor;
+
+        // AnomalieJ1 image — centered, preserve aspect
+        if (anomalieJ1Sprite != null)
         {
-            elapsed             += Time.deltaTime;
-            float t              = Mathf.SmoothStep(0f, 1f, elapsed / carnetTiltDuration);
-            carnet.localRotation = Quaternion.Slerp(startRot, endRot, t);
-            yield return null;
+            var imgGO  = new GameObject("AnomalieJ1");
+            imgGO.transform.SetParent(overlayRoot.transform, false);
+            var imgRT  = imgGO.AddComponent<RectTransform>();
+            imgRT.anchorMin = new Vector2(0.1f, 0.1f);
+            imgRT.anchorMax = new Vector2(0.9f, 0.9f);
+            imgRT.offsetMin = imgRT.offsetMax = Vector2.zero;
+            var img         = imgGO.AddComponent<Image>();
+            img.sprite          = anomalieJ1Sprite;
+            img.preserveAspect  = true;
         }
 
-        carnet.localRotation = endRot;
+        // Dismiss hint at the bottom of the screen
+        var hintGO  = new GameObject("DismissHint");
+        hintGO.transform.SetParent(overlayRoot.transform, false);
+        var hintRT  = hintGO.AddComponent<RectTransform>();
+        hintRT.anchorMin        = new Vector2(0f, 0f);
+        hintRT.anchorMax        = new Vector2(1f, 0f);
+        hintRT.pivot            = new Vector2(0.5f, 0f);
+        hintRT.anchoredPosition = new Vector2(0f, 24f);
+        hintRT.sizeDelta        = new Vector2(0f, 40f);
+        var hintTxt             = hintGO.AddComponent<TMPro.TextMeshProUGUI>();
+        hintTxt.text      = "[ Échap ] ou cliquer pour continuer";
+        hintTxt.fontSize  = 16f;
+        hintTxt.color     = new Color(1f, 1f, 1f, 0.65f);
+        hintTxt.alignment = TMPro.TextAlignmentOptions.Center;
+
+        // Invisible fullscreen button — catches mouse click to dismiss
+        var btnGO  = new GameObject("ClickDismiss");
+        btnGO.transform.SetParent(overlayRoot.transform, false);
+        var btnRT  = btnGO.AddComponent<RectTransform>();
+        btnRT.anchorMin = Vector2.zero;
+        btnRT.anchorMax = Vector2.one;
+        btnRT.offsetMin = btnRT.offsetMax = Vector2.zero;
+        var btnImg      = btnGO.AddComponent<Image>();
+        btnImg.color    = Color.clear;
+        var btn         = btnGO.AddComponent<Button>();
+        btn.targetGraphic = btnImg;
+        btn.onClick.AddListener(DismissOverlay);
+
+        // Show cursor so the player can click
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+
+        StartCoroutine(WaitForEscapeDismiss());
+    }
+
+    private IEnumerator WaitForEscapeDismiss()
+    {
+        while (overlayRoot != null && overlayRoot.activeSelf)
+        {
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            {
+                DismissOverlay();
+                yield break;
+            }
+            yield return null;
+        }
+    }
+
+    private void DismissOverlay()
+    {
+        if (overlayRoot == null) return;
+        overlayRoot.SetActive(false);
+        Destroy(overlayRoot, 0.1f);
+    }
+
+    // ── Fallback when radioSystem is null ─────────────────────────────────────
+
+    private void RestorePlayerControl()
+    {
+        if (playerController  != null) playerController.CanMove  = true;
+        if (interactionSystem != null) interactionSystem.enabled  = true;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible   = false;
     }
 }

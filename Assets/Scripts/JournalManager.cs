@@ -39,7 +39,14 @@ public class JournalManager : MonoBehaviour
             GameStateManager.Instance.OnAnomalyTriggered += HandleAnomalyTriggered;
 
         if (journalPanel != null)
+        {
             journalPanel.OnMessageDecoded += HandleMessageDecoded;
+
+            // If persistence is disabled (dev mode) or CurrentDay is 1 with no saved anomaly,
+            // wipe any stale decoder progress so the player always starts clean.
+            if (!GameStateManager.Instance.IsPostAnomaly)
+                journalPanel.ClearDecoderProgress(GameStateManager.Instance.CurrentDay);
+        }
     }
 
     private void OnDestroy()
@@ -72,6 +79,36 @@ public class JournalManager : MonoBehaviour
 
     /// <summary>Exposes the journal panel for external systems (e.g., RadioSystem).</summary>
     public JournalPanel GetJournalPanel() => journalPanel;
+
+    /// <summary>
+    /// Opens the journal directly on the decoder tab after the radio clip ends.
+    /// Locks player input the same way as Open().
+    /// </summary>
+    public void OpenOnDecoderTab()
+    {
+        if (isOpen) return;
+        isOpen = true;
+
+        var data     = GetCurrentData();
+        var thoughts = GameStateManager.Instance.IsPostAnomaly
+            ? data?.PostAnomalyThoughts ?? ""
+            : data?.PreAnomalyThoughts  ?? "";
+
+        int[]  codeSeq         = data?.CodeSequence        ?? System.Array.Empty<int>();
+        int[]  hiddenIndices   = data?.HiddenSlotIndices    ?? System.Array.Empty<int>();
+        string decodedSolution = data?.OfficialMessageDecoded ?? "";
+
+        journalPanel.ShowOnDecoderTab(GameStateManager.Instance.CurrentDay, thoughts,
+            codeSeq, hiddenIndices, decodedSolution);
+
+        GameStateManager.Instance.OpenBlockingUI();
+
+        if (playerController  != null) playerController.CanMove  = false;
+        if (interactionSystem != null) interactionSystem.enabled  = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+    }
 
     /// <summary>Opens the journal and locks player input.</summary>
     public void Open()

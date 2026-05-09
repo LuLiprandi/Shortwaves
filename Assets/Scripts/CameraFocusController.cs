@@ -27,6 +27,12 @@ public class CameraFocusController : MonoBehaviour
     public bool IsFocused => isFocused;
     public bool IsTransitioning => isTransitioning;
 
+    /// <summary>
+    /// When true, the Escape key will not exit focus.
+    /// Set by AnomalySequencer to lock the player on the radio during the anomaly sequence.
+    /// </summary>
+    public bool LockEscape { get; set; } = false;
+
     /// <summary>Fired when the camera finishes exiting focus.</summary>
     public event System.Action OnFocusExited;
 
@@ -42,7 +48,7 @@ public class CameraFocusController : MonoBehaviour
 
     private void Update()
     {
-        if (isFocused && !GameStateManager.Instance.IsCutsceneActive && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (isFocused && !LockEscape && !GameStateManager.Instance.IsCutsceneActive && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             DocumentInteractable.ConsumeEscape();
             ExitFocus();

@@ -106,6 +106,18 @@ public class JournalPanel : MonoBehaviour
         gameObject.SetActive(false);
     }
 
+    private void Start()
+    {
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnDayChanged += HandleDayChanged;
+    }
+
+    private void OnDestroy()
+    {
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnDayChanged -= HandleDayChanged;
+    }
+
     private void Update()
     {
         if (decoderContent == null || !decoderContent.activeSelf) return;
@@ -124,6 +136,32 @@ public class JournalPanel : MonoBehaviour
     {
         PlayerPrefs.DeleteKey(PrefLettersKey + currentDay);
         PlayerPrefs.DeleteKey(PrefDoneKey    + currentDay);
+        PlayerPrefs.Save();
+    }
+
+    // ── Day change / reset ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called when GameStateManager advances to the next day.
+    /// Wipes the decoder progress for the new day so the player starts fresh.
+    /// </summary>
+    private void HandleDayChanged(int newDay)
+    {
+        ClearDecoderProgress(newDay);
+
+        // Also reset in-memory state so the journal rebuilds cleanly when opened.
+        radioUnlocked    = false;
+        decodingComplete = false;
+    }
+
+    /// <summary>
+    /// Clears all saved decoder progress (letter inputs and completion flag) for the given day.
+    /// Call on new game start or day transition.
+    /// </summary>
+    public void ClearDecoderProgress(int day)
+    {
+        PlayerPrefs.DeleteKey(PrefLettersKey + day);
+        PlayerPrefs.DeleteKey(PrefDoneKey    + day);
         PlayerPrefs.Save();
     }
 
@@ -158,6 +196,29 @@ public class JournalPanel : MonoBehaviour
     {
         SaveDecoderState();
         gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// Same as Show() but opens directly on the decoder tab.
+    /// Called automatically after the radio voice clip ends.
+    /// </summary>
+    public void ShowOnDecoderTab(int day, string thoughts, int[] codeSequence, int[] hiddenSlotIndices, string decodedSolution)
+    {
+        currentDay = day;
+        dayTitleTmp.text         = "Carnet  -  Jour " + day;
+        journalSectionLabel.text = "Jour " + day + " :";
+        thoughtsTmp.text         = thoughts;
+
+        bool hasDecoder = journalConfig != null ? journalConfig.HasDecoder(day) : day <= 3;
+        currentMode = journalConfig != null ? journalConfig.GetMode(day) : DecryptionMode.Guided;
+
+        decoderTabGO.SetActive(hasDecoder);
+
+        if (hasDecoder && codeSequence != null && codeSequence.Length > 0)
+            RebuildDecoderSlots(codeSequence, hiddenSlotIndices ?? Array.Empty<int>(), decodedSolution);
+
+        SetTab(false); // Ouvre directement sur l'onglet décodage
+        gameObject.SetActive(true);
     }
 
     /// <summary>Updates thoughts text while the panel is already open.</summary>

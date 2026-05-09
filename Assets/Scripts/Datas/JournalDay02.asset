@@ -13,5 +13,12 @@ MonoBehaviour:
   m_Name: JournalDay02
   m_EditorClassIdentifier: 
   DayNumber: 2
-  PreAnomalyThoughts: 
+  PreAnomalyThoughts: "J'ai mal dormi. Le vent fait un bruit de sifflement bizarre,
+    comme si on m'appelait. De plus j'ai l'impression qu'il y a qu'elque choses dans
+    les ventilations... J\u2019ai \xE9galement beaucoup cogit\xE9 sur les \xE9v\xE9nements
+    d' hier mais je dois rester concentr\xE9 sur les messages, c'est ma mission."
   PostAnomalyThoughts: 
+  CodeSequenceRaw: 
+  HiddenSlotIndicesRaw: 
+  OfficialMessageDecoded: 
+  AnomalyNote: 

@@ -186,6 +186,40 @@ public class RadioSystem : MonoBehaviour
 
         // Déverrouille l'onglet décodage du journal pour le jour en cours
         JournalManager.Instance?.GetJournalPanel()?.UnlockDecoder();
+
+        // Dès que le clip se termine, verrouiller l'Escape et ouvrir le journal automatiquement
+        StartCoroutine(AutoOpenJournalAfterClip());
+    }
+
+    private System.Collections.IEnumerator AutoOpenJournalAfterClip()
+    {
+        // Attendre la fin du clip vocal
+        yield return new WaitUntil(() => !decodingAudioSource.isPlaying);
+
+        // Bloquer la sortie de focus radio — le joueur ne peut plus quitter la radio manuellement
+        if (focusController != null)
+            focusController.LockEscape = true;
+
+        // Ouvrir le journal directement sur l'onglet décodage
+        JournalManager.Instance?.OpenOnDecoderTab();
+    }
+
+    /// <summary>
+    /// Relâche le verrou Escape et sort le focus radio après la séquence anomalie.
+    /// Appelé par AnomalySequencer une fois l'overlay AnomalieJ1 fermé.
+    /// </summary>
+    public void ReleaseAfterAnomaly()
+    {
+        if (focusController != null)
+            focusController.LockEscape = false;
+
+        ExitFocusAndDeactivate();
+    }
+
+    private void ExitFocusAndDeactivate()
+    {
+        SetActive(false);
+        focusController?.ExitFocus();
     }
 
     private void HandleQTEFail()
@@ -213,6 +247,13 @@ public class RadioSystem : MonoBehaviour
         if (knob != null)
             knob.SetNormalizedValue(targetNormalized);
 
+        // Make the visualizer visible for the anomaly even if the player isn't focused on the radio
+        frequencyVisualizer?.SetVisible(true);
+
+        // Immediately update the visualizer so the needle snaps to 100 MHz visually
+        float targetFrequency = Mathf.Lerp(frequencyMin, frequencyMax, targetNormalized);
+        frequencyVisualizer?.UpdateVisualizer(targetFrequency, 0f, targetNormalized);
+
         // Short buzz before the clear signal
         StopDecoding();
         yield return new WaitForSeconds(0.4f);
@@ -237,6 +278,10 @@ public class RadioSystem : MonoBehaviour
         // Return to static / tuning
         State = RadioState.Tuning;
         StopDecoding();
+
+        // Hide the visualizer again if the radio is not currently active (player not focused)
+        if (!isActive)
+            frequencyVisualizer?.SetVisible(false);
 
         OnAnomalyBroadcastComplete?.Invoke();
     }
