@@ -43,7 +43,10 @@ public class CameraFocusController : MonoBehaviour
     private void Update()
     {
         if (isFocused && !GameStateManager.Instance.IsCutsceneActive && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            DocumentInteractable.ConsumeEscape();
             ExitFocus();
+        }
     }
 
     public void EnterFocus(Transform target, Vector3 targetPosition, Quaternion targetRotation)

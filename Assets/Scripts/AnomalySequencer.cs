@@ -29,7 +29,7 @@ public class AnomalySequencer : MonoBehaviour
     [SerializeField] private Transform carnet;
 
     [Tooltip("Target local rotation for the tilted carnet (Euler angles).")]
-    [SerializeField] private Vector3 carnetTiltEuler = new Vector3(0f, 354.12f, 170f);
+    [SerializeField] private Vector3 carnetTiltEuler = new Vector3(15f, 354.12f, 20f);
 
     [Tooltip("Duration in seconds for the carnet tilt animation.")]
     [SerializeField] private float carnetTiltDuration = 0.6f;

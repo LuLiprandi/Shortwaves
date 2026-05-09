@@ -43,11 +43,12 @@ public class JournalPanel : MonoBehaviour
 
     private const string PrefLettersKey  = "jrn_letters_d";
     private const string PrefDoneKey     = "jrn_done_d";
-    private const string PrefUnlockedKey = "jrn_unlocked_d";
 
 
     [SerializeField] private JournalConfig  journalConfig;
-    [SerializeField] private DecryptionKey  decryptionKey;
+
+    [Tooltip("Image du tableau de décodage affichée dans l'overlay (touche T).")]
+    [SerializeField] private Sprite         decryptionKeyImage;
 
     
 
@@ -112,13 +113,6 @@ public class JournalPanel : MonoBehaviour
         var kb = Keyboard.current;
         if (kb == null) return;
 
-        // T toggles the decryption key overlay regardless of radio/decoding state
-        if (kb.tKey.wasPressedThisFrame)
-        {
-            ToggleKeyOverlay();
-            return;
-        }
-
         // Tab navigation only available when radio is unlocked and decoding is ongoing
         if (decodingComplete || !radioUnlocked) return;
 
@@ -128,7 +122,8 @@ public class JournalPanel : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        SaveDecoderState();
+        PlayerPrefs.DeleteKey(PrefLettersKey + currentDay);
+        PlayerPrefs.DeleteKey(PrefDoneKey    + currentDay);
         PlayerPrefs.Save();
     }
 
@@ -175,8 +170,6 @@ public class JournalPanel : MonoBehaviour
     public void UnlockDecoder()
     {
         radioUnlocked = true;
-        PlayerPrefs.SetInt(PrefUnlockedKey + currentDay, 1);
-        PlayerPrefs.Save();
 
         if (slots == null) return;
 
@@ -215,8 +208,7 @@ public class JournalPanel : MonoBehaviour
 
         int count        = codeSequence.Length;
         var hiddenSet    = new HashSet<int>(hiddenIndices);
-        radioUnlocked    = PlayerPrefs.GetInt(PrefUnlockedKey + currentDay, 0) == 1;
-        decodingComplete = PlayerPrefs.GetInt(PrefDoneKey     + currentDay, 0) == 1;
+        decodingComplete = PlayerPrefs.GetInt(PrefDoneKey + currentDay, 0) == 1;
 
         slots = new SlotData[count];
         for (int i = 0; i < count; i++)
@@ -287,10 +279,6 @@ public class JournalPanel : MonoBehaviour
         pg.AddComponent<Image>().color = ColPage;
         BuildRules(pg.transform);
         BuildPage(pg.transform);
-
-        // Key overlay — built last so it renders on top of everything
-        keyOverlay = BuildKeyOverlay(pg.transform);
-        keyOverlay.SetActive(false);
     }
 
     private static void BuildCoverBorder(Transform p)
@@ -381,22 +369,20 @@ public class JournalPanel : MonoBehaviour
         mRT.sizeDelta = new Vector2(2f, 0f);
         mRT.anchoredPosition = new Vector2(28f, 0f);
 
-        // TABLE button — opens the DecryptionKey overlay
+        // TABLE button — toggles the key panel
         var tblGO = MakeGO("TableBtn", h.transform);
         var tblRT = tblGO.AddComponent<RectTransform>();
         tblRT.anchorMin = new Vector2(1f, 0f); tblRT.anchorMax = Vector2.one;
         tblRT.pivot     = new Vector2(1f, 0.5f);
-        tblRT.sizeDelta = new Vector2(104f, 0f);
+        tblRT.sizeDelta = new Vector2(88f, 0f);
         tblRT.anchoredPosition = new Vector2(-62f, 0f);
         var tblBg  = tblGO.AddComponent<Image>(); tblBg.color = new Color(ColInkDim.r, ColInkDim.g, ColInkDim.b, 0.15f);
         var tblBtn = tblGO.AddComponent<Button>(); tblBtn.targetGraphic = tblBg;
         var tblNav = Navigation.defaultNavigation; tblNav.mode = Navigation.Mode.None; tblBtn.navigation = tblNav;
         tblBtn.onClick.AddListener(ToggleKeyOverlay);
-        var tblLbl = MakeTMP("L", tblGO.transform, "TABLE  [T]", 11f, ColInkDim, FontStyles.Bold);
+        var tblLbl = MakeTMP("L", tblGO.transform, "TABLE", 11f, ColInkDim, FontStyles.Bold);
         tblLbl.alignment = TextAlignmentOptions.Center; tblLbl.characterSpacing = 1f;
-        Stretch(tblLbl.GetComponent<RectTransform>());
-
-        // Close button
+        Stretch(tblLbl.GetComponent<RectTransform>());        // Close button
         var cGO = MakeGO("Close", h.transform);
         var cRT = cGO.AddComponent<RectTransform>();
         cRT.anchorMin = new Vector2(1f, 0f); cRT.anchorMax = Vector2.one;
@@ -432,6 +418,10 @@ public class JournalPanel : MonoBehaviour
         HRule("HR2", p, ContentTop - DivH);
         journalContent = BuildJournalTab(p);
         decoderContent = BuildDecoderTab(p);
+
+        // Key panel — enfant du decoderContent, rendu par-dessus les slots
+        keyOverlay = BuildKeyOverlay(decoderContent.transform);
+        keyOverlay.SetActive(false);
     }
 
     private void MakeTab(string name, Transform p, string label, bool isJ,
@@ -765,52 +755,59 @@ public class JournalPanel : MonoBehaviour
 
     // ── Key overlay ───────────────────────────────────────────────────────────
 
-    private GameObject BuildKeyOverlay(Transform page)
+    /// <summary>
+    /// Builds a compact floating panel anchored to the top-right of the decoder tab.
+    /// Parent must be the decoderContent RectTransform so it stays inside the page.
+    /// </summary>
+    private GameObject BuildKeyOverlay(Transform parent)
     {
-        var ov   = MakeGO("KeyOverlay", page);
+        const float PanelW = 220f;
+        const float PanelH = 200f;
+        const float BtnSz  = 26f;
+        const float Pad    = 8f;
+
+        var ov   = MakeGO("KeyPanel", parent);
         var ovRT = ov.AddComponent<RectTransform>();
-        Stretch(ovRT);
-        ovRT.offsetMin = new Vector2(30f, 30f); ovRT.offsetMax = new Vector2(-30f, -30f);
-        ov.AddComponent<Image>().color = ColKeyOverBg;
+        // Anchor top-right of the decoder content area
+        ovRT.anchorMin        = new Vector2(1f, 1f);
+        ovRT.anchorMax        = new Vector2(1f, 1f);
+        ovRT.pivot            = new Vector2(1f, 1f);
+        ovRT.anchoredPosition = new Vector2(-8f, -8f);
+        ovRT.sizeDelta        = new Vector2(PanelW, PanelH);
 
-        var vlg = ov.AddComponent<VerticalLayoutGroup>();
-        vlg.padding = new RectOffset(36, 36, 24, 24); vlg.spacing = 10f;
-        vlg.childControlWidth = true; vlg.childControlHeight = true;
-        vlg.childForceExpandWidth = true; vlg.childForceExpandHeight = false;
+        var bg = ov.AddComponent<Image>();
+        bg.color = ColKeyOverBg;
 
-        var title = MakeTMP("Title", ov.transform, "TABLEAU DE DÉCODAGE", 15f, ColInk, FontStyles.Bold);
-        title.alignment = TextAlignmentOptions.Center; title.characterSpacing = 2f;
-        title.gameObject.AddComponent<LayoutElement>().preferredHeight = 26f;
+        // Image du tableau — remplit le panneau avec marges
+        var imgGO = MakeGO("KeyImage", ov.transform);
+        var imgRT = imgGO.AddComponent<RectTransform>();
+        imgRT.anchorMin        = Vector2.zero;
+        imgRT.anchorMax        = Vector2.one;
+        imgRT.offsetMin        = new Vector2(Pad, Pad);
+        imgRT.offsetMax        = new Vector2(-Pad, -Pad);
+        var img = imgGO.AddComponent<Image>();
+        img.sprite         = decryptionKeyImage;
+        img.preserveAspect = true;
 
-        var sep = MakeGO("Sep", ov.transform);
-        sep.AddComponent<RectTransform>(); sep.AddComponent<Image>().color = ColRule;
-        sep.AddComponent<LayoutElement>().preferredHeight = 1.5f;
-
-        var body = MakeTMP("Body", ov.transform, BuildKeyText(), 13f, ColInk);
-        body.alignment = TextAlignmentOptions.TopLeft;
-        body.textWrappingMode = TextWrappingModes.Normal;
-        body.lineSpacing = 6f; body.characterSpacing = 0.5f;
-
-        var close = MakeTMP("Close", ov.transform, "[ Fermer — touche  T ]", 11f, ColInkDim, FontStyles.Italic);
-        close.alignment = TextAlignmentOptions.Center;
-        close.gameObject.AddComponent<LayoutElement>().preferredHeight = 22f;
+        // Bouton ✕ en haut à droite du panneau
+        var closeBtn   = MakeGO("CloseBtn", ov.transform);
+        var closeBtnRT = closeBtn.AddComponent<RectTransform>();
+        closeBtnRT.anchorMin        = new Vector2(1f, 1f);
+        closeBtnRT.anchorMax        = new Vector2(1f, 1f);
+        closeBtnRT.pivot            = new Vector2(1f, 1f);
+        closeBtnRT.anchoredPosition = Vector2.zero;
+        closeBtnRT.sizeDelta        = new Vector2(BtnSz, BtnSz);
+        var closeBtnImg  = closeBtn.AddComponent<Image>(); closeBtnImg.color = ColInk;
+        var closeBtnComp = closeBtn.AddComponent<Button>();
+        closeBtnComp.targetGraphic = closeBtnImg;
+        closeBtnComp.onClick.AddListener(ToggleKeyOverlay);
+        var closeLbl   = MakeTMP("Lbl", closeBtn.transform, "x", 13f, ColPage, FontStyles.Bold);
+        closeLbl.alignment = TextAlignmentOptions.Center;
+        var closeLblRT = closeLbl.GetComponent<RectTransform>();
+        closeLblRT.anchorMin = Vector2.zero; closeLblRT.anchorMax = Vector2.one;
+        closeLblRT.offsetMin = Vector2.zero; closeLblRT.offsetMax = Vector2.zero;
 
         return ov;
-    }
-
-    private string BuildKeyText()
-    {
-        if (decryptionKey == null || decryptionKey.entries == null || decryptionKey.entries.Length == 0)
-            return "Assignez un asset DecryptionKey dans l'Inspector de JournalPanel pour afficher la table.";
-
-        var sb = new System.Text.StringBuilder();
-        int col = 0;
-        foreach (var e in decryptionKey.entries)
-        {
-            sb.Append(e.code.ToString().PadLeft(2)).Append(" → ").Append(e.letter).Append("    ");
-            if (++col % 9 == 0) sb.AppendLine();
-        }
-        return sb.ToString().TrimEnd();
     }
 
     private void ToggleKeyOverlay()
