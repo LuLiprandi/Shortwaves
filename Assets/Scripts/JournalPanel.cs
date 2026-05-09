@@ -5,13 +5,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-/// <summary>
-/// Immersive notebook UI — leather cover, spiral spine, cream ruled pages, two tabs.
-/// The DECODAGE tab supports three modes: Guided, Partial, Full.
-/// </summary>
+
 public class JournalPanel : MonoBehaviour
 {
-    // ── Palette ───────────────────────────────────────────────────────────────
 
     private static readonly Color ColOverlay    = new(0f,    0f,    0f,    0.78f);
     private static readonly Color ColShadow     = new(0.04f, 0.02f, 0.01f, 0.85f);
@@ -32,7 +28,7 @@ public class JournalPanel : MonoBehaviour
     private static readonly Color ColMuted      = new(0.55f, 0.45f, 0.30f, 1f);
     private static readonly Color ColKeyOverBg  = new(0.96f, 0.93f, 0.84f, 0.97f);
 
-    // ── Layout ────────────────────────────────────────────────────────────────
+    
 
     private const float SpineW      = 80f;
     private const float CoverPad    = 18f;
@@ -43,19 +39,17 @@ public class JournalPanel : MonoBehaviour
     private const int   Holes       = 15;
     private const int   RuleLines   = 22;
 
-    // ── Prefs ─────────────────────────────────────────────────────────────────
+  
 
-    private const string PrefCodesKey    = "jrn_codes_d";
     private const string PrefLettersKey  = "jrn_letters_d";
     private const string PrefDoneKey     = "jrn_done_d";
     private const string PrefUnlockedKey = "jrn_unlocked_d";
 
-    // ── Inspector ─────────────────────────────────────────────────────────────
 
     [SerializeField] private JournalConfig  journalConfig;
     [SerializeField] private DecryptionKey  decryptionKey;
 
-    // ── UI refs ───────────────────────────────────────────────────────────────
+    
 
     private TextMeshProUGUI dayTitleTmp;
     private TextMeshProUGUI thoughtsTmp;
@@ -68,30 +62,27 @@ public class JournalPanel : MonoBehaviour
     private Image           decoderTabBg;
     private GameObject      decoderTabGO;
 
-    // Decoder tab dynamic elements
+    
     private Transform           slotsContainer;
     private TextMeshProUGUI     radioHintTmp;
     private TextMeshProUGUI     feedbackTmp;
     private Button              validateBtn;
     private GameObject          keyOverlay;
 
-    // Per-slot state
+    
     private SlotData[]          slots;
     private int                 focusedSlot = -1;
 
-    // ── State ─────────────────────────────────────────────────────────────────
+  
 
     private int            currentDay;
     private DecryptionMode currentMode;
     private bool           radioUnlocked;
     private bool           decodingComplete;
 
-    // ── Events ────────────────────────────────────────────────────────────────
-
-    /// <summary>Fired once when the player successfully validates the decoded message.</summary>
     public event Action OnMessageDecoded;
 
-    // ── Per-slot data ─────────────────────────────────────────────────────────
+    
 
     private class SlotData
     {
@@ -116,19 +107,29 @@ public class JournalPanel : MonoBehaviour
 
     private void Update()
     {
-        // Only intercept Tab when the decoder tab is visible and radio is unlocked
         if (decoderContent == null || !decoderContent.activeSelf) return;
-        if (decodingComplete || !radioUnlocked) return;
 
         var kb = Keyboard.current;
         if (kb == null) return;
 
+        // T toggles the decryption key overlay regardless of radio/decoding state
+        if (kb.tKey.wasPressedThisFrame)
+        {
+            ToggleKeyOverlay();
+            return;
+        }
+
+        // Tab navigation only available when radio is unlocked and decoding is ongoing
+        if (decodingComplete || !radioUnlocked) return;
+
         if (kb.tabKey.wasPressedThisFrame)
             MoveFocus(kb.leftShiftKey.isPressed ? -1 : 1);
+    }
 
-        // Toggle decryption key overlay with T
-        if (kb.tKey.wasPressedThisFrame)
-            ToggleKeyOverlay();
+    private void OnApplicationQuit()
+    {
+        SaveDecoderState();
+        PlayerPrefs.Save();
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -224,13 +225,15 @@ public class JournalPanel : MonoBehaviour
             sd.code     = codeSequence[i];
             sd.isHidden = currentMode switch
             {
-                DecryptionMode.Guided  => false,          // no slot is structurally hidden in Guided
+                DecryptionMode.Guided  => false,
                 DecryptionMode.Partial => hiddenSet.Contains(i),
                 DecryptionMode.Full    => true,
                 _                     => false
             };
-            // Code is pre-visible only in Guided AND after radio unlock
-            sd.codeResolved = !sd.isHidden && radioUnlocked;
+            // In Guided mode, codes are visible as soon as radioUnlocked is true
+            sd.codeResolved = currentMode == DecryptionMode.Guided
+                ? radioUnlocked
+                : (!sd.isHidden && radioUnlocked);
             sd.letterInput  = "";
             slots[i] = sd;
             BuildSlotUI(sd, i, slotsContainer);
@@ -868,17 +871,12 @@ public class JournalPanel : MonoBehaviour
     {
         if (slots == null) return;
 
-        var resolved = new string[slots.Length];
-        var letters  = new string[slots.Length];
+        var letters = new string[slots.Length];
         for (int i = 0; i < slots.Length; i++)
-        {
-            resolved[i] = slots[i].codeResolved ? "1" : "0";
-            letters[i]  = slots[i].letterField  != null ? slots[i].letterField.text : "";
-        }
+            letters[i] = slots[i].letterField != null ? slots[i].letterField.text : "";
 
-        PlayerPrefs.SetString(PrefCodesKey    + currentDay, string.Join("|", resolved));
-        PlayerPrefs.SetString(PrefLettersKey  + currentDay, string.Join("|", letters));
-        PlayerPrefs.SetInt   (PrefDoneKey     + currentDay, decodingComplete ? 1 : 0);
+        PlayerPrefs.SetString(PrefLettersKey + currentDay, string.Join("|", letters));
+        PlayerPrefs.SetInt   (PrefDoneKey    + currentDay, decodingComplete ? 1 : 0);
         PlayerPrefs.Save();
     }
 
@@ -886,21 +884,22 @@ public class JournalPanel : MonoBehaviour
     {
         if (slots == null) return;
 
-        string resolvedRaw = PlayerPrefs.GetString(PrefCodesKey   + currentDay, "");
-        string lettersRaw  = PlayerPrefs.GetString(PrefLettersKey + currentDay, "");
-
-        string[] resolved = string.IsNullOrEmpty(resolvedRaw) ? Array.Empty<string>() : resolvedRaw.Split('|');
-        string[] letters  = string.IsNullOrEmpty(lettersRaw)  ? Array.Empty<string>() : lettersRaw.Split('|');
+        string lettersRaw = PlayerPrefs.GetString(PrefLettersKey + currentDay, "");
+        string[] letters  = string.IsNullOrEmpty(lettersRaw) ? Array.Empty<string>() : lettersRaw.Split('|');
 
         for (int i = 0; i < slots.Length; i++)
         {
             var sd = slots[i];
 
-            // Restore previously resolved codes (Partial/Full saved from prior sessions)
-            if (!sd.codeResolved && i < resolved.Length && resolved[i] == "1")
-                RevealCode(sd);
+            // Sync visuals for slots already marked resolved during RebuildDecoderSlots
+            if (sd.codeResolved)
+            {
+                sd.codeText.text  = sd.code.ToString();
+                sd.codeText.color = ColInk;
+                sd.bg.color       = ColSlotBg;
+            }
 
-            // Restore letter input
+            // Restore letter input from previous session
             if (sd.codeResolved && i < letters.Length && !string.IsNullOrEmpty(letters[i]))
             {
                 sd.letterInput      = letters[i];

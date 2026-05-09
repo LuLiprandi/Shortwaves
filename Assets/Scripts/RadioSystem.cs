@@ -30,6 +30,11 @@ public class RadioSystem : MonoBehaviour
 
     public event Action<RadioStationData> OnStationDecoded;
 
+    /// <summary>
+    /// Fired when the anomaly broadcast sequence completes (voice clip finished playing).
+    /// </summary>
+    public event Action OnAnomalyBroadcastComplete;
+
     private bool isActive;
     private RadioStationData activeStation;
 
@@ -186,6 +191,54 @@ public class RadioSystem : MonoBehaviour
     private void HandleQTEFail()
     {
         ExitQTE();
+    }
+
+    /// <summary>
+    /// Forces the radio to broadcast an anomaly clip at the given frequency target (normalized 0-1).
+    /// No QTE — plays once then returns the radio to static.
+    /// </summary>
+    public void TriggerAnomalyBroadcast(AudioClip voiceClip, float targetNormalized,
+        SubtitleEntry[] subtitles = null)
+    {
+        StartCoroutine(AnomalyBroadcastRoutine(voiceClip, targetNormalized, subtitles));
+    }
+
+    private System.Collections.IEnumerator AnomalyBroadcastRoutine(AudioClip voiceClip,
+        float targetNormalized, SubtitleEntry[] subtitles)
+    {
+        // Force radio state and move the knob to the target frequency
+        if (State == RadioState.QTE) ExitQTE();
+        State = RadioState.Decoded;
+
+        if (knob != null)
+            knob.SetNormalizedValue(targetNormalized);
+
+        // Short buzz before the clear signal
+        StopDecoding();
+        yield return new WaitForSeconds(0.4f);
+
+        // Play the anomaly voice clip once
+        if (voiceClip != null)
+        {
+            decodingAudioSource.clip   = voiceClip;
+            decodingAudioSource.loop   = false;
+            decodingAudioSource.volume = 1f;
+            decodingAudioSource.Play();
+
+            if (subtitleSystem != null && subtitles != null && subtitles.Length > 0)
+                subtitleSystem.Play(decodingAudioSource, subtitles);
+
+            yield return new WaitUntil(() => !decodingAudioSource.isPlaying);
+
+            if (subtitleSystem != null)
+                subtitleSystem.Stop();
+        }
+
+        // Return to static / tuning
+        State = RadioState.Tuning;
+        StopDecoding();
+
+        OnAnomalyBroadcastComplete?.Invoke();
     }
 
     private void StopDecoding()

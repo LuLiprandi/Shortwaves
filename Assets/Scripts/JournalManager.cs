@@ -13,7 +13,8 @@ public class JournalManager : MonoBehaviour
     [SerializeField] private JournalDayData[] days;
 
     [Header("References")]
-    [SerializeField] private JournalPanel journalPanel;
+    [SerializeField] private JournalPanel      journalPanel;
+    [SerializeField] private AnomalySequencer  anomalySequencer;
 
     private FirstPersonController playerController;
     private InteractionSystem     interactionSystem;
@@ -128,6 +129,10 @@ public class JournalManager : MonoBehaviour
     private void HandleMessageDecoded()
     {
         GameStateManager.Instance?.TriggerAnomaly();
+
+        // Close the journal first, then trigger the anomaly sequence
+        Close();
+        anomalySequencer?.TriggerSequence();
     }
 
     private JournalDayData GetCurrentData()
