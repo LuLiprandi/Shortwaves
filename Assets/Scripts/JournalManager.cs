@@ -13,8 +13,9 @@ public class JournalManager : MonoBehaviour
     [SerializeField] private JournalDayData[] days;
 
     [Header("References")]
-    [SerializeField] private JournalPanel      journalPanel;
-    [SerializeField] private AnomalySequencer  anomalySequencer;
+    [SerializeField] private JournalPanel            journalPanel;
+    [SerializeField] private AnomalySequencer        anomalySequencer;
+    [SerializeField] private Shortwaves.Day2AnomalySequencer day2AnomalySequencer;
 
     private FirstPersonController playerController;
     private InteractionSystem     interactionSystem;
@@ -81,6 +82,19 @@ public class JournalManager : MonoBehaviour
     public JournalPanel GetJournalPanel() => journalPanel;
 
     /// <summary>
+    /// Returns the voice clip configured for the current day in JournalDayData.
+    /// Returns null if no clip is set, so the caller can fall back to RadioStationData.VoiceClip.
+    /// </summary>
+    public AudioClip GetCurrentDayVoiceClip() => GetCurrentData()?.RadioVoiceClip;
+
+    /// <summary>
+    /// Returns the subtitles configured for the current day in JournalDayData.
+    /// Returns an empty array if none are set.
+    /// </summary>
+    public SubtitleEntry[] GetCurrentDaySubtitles() =>
+        GetCurrentData()?.RadioSubtitles ?? System.Array.Empty<SubtitleEntry>();
+
+    /// <summary>
     /// Opens the journal directly on the decoder tab after the radio clip ends.
     /// Locks player input the same way as Open().
     /// </summary>
@@ -100,6 +114,10 @@ public class JournalManager : MonoBehaviour
 
         journalPanel.ShowOnDecoderTab(GameStateManager.Instance.CurrentDay, thoughts,
             codeSeq, hiddenIndices, decodedSolution);
+
+        // Hide the specified slots now that the message has been delivered via radio
+        if (hiddenIndices != null && hiddenIndices.Length > 0)
+            journalPanel.HideSlots(hiddenIndices);
 
         GameStateManager.Instance.OpenBlockingUI();
 
@@ -153,6 +171,26 @@ public class JournalManager : MonoBehaviour
         Cursor.visible   = false;
     }
 
+    /// <summary>
+    /// Ouvre le journal sur l'onglet "pensées" avec un texte libre.
+    /// Utilisé par Day2AnomalySequencer pour afficher la pensée post-choix.
+    /// </summary>
+    public void OpenWithThoughts(string thoughts)
+    {
+        if (isOpen) return;
+        isOpen = true;
+
+        journalPanel.ShowWithThoughts(GameStateManager.Instance.CurrentDay, thoughts);
+
+        GameStateManager.Instance.OpenBlockingUI();
+
+        if (playerController  != null) playerController.CanMove  = false;
+        if (interactionSystem != null) interactionSystem.enabled  = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+    }
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     private void HandleAnomalyTriggered()
@@ -167,9 +205,13 @@ public class JournalManager : MonoBehaviour
     {
         GameStateManager.Instance?.TriggerAnomaly();
 
-        // Close the journal first, then trigger the anomaly sequence
+        // Close the journal first, then trigger the day-appropriate anomaly sequence
         Close();
-        anomalySequencer?.TriggerSequence();
+
+        if (GameStateManager.Instance.CurrentDay == 2)
+            day2AnomalySequencer?.TriggerSequence();
+        else
+            anomalySequencer?.TriggerSequence();
     }
 
     private JournalDayData GetCurrentData()

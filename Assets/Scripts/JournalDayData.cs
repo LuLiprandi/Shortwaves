@@ -17,6 +17,13 @@ public class JournalDayData : ScriptableObject
     [TextArea(4, 10)]
     public string PostAnomalyThoughts = "";
 
+    [Header("Radio — message vocal")]
+    [Tooltip("Clip audio joué une seule fois après le succès du QTE. Remplace le clip de RadioStationData pour ce jour.")]
+    public AudioClip RadioVoiceClip;
+
+    [Tooltip("Sous-titres synchronisés au RadioVoiceClip. startTime en secondes.")]
+    public SubtitleEntry[] RadioSubtitles = System.Array.Empty<SubtitleEntry>();
+
     [Header("Décodage — message radio")]
     [Tooltip(
         "Séquence de codes chiffrés du message radio, séparés par des espaces.\n" +
@@ -48,7 +55,7 @@ public class JournalDayData : ScriptableObject
         get
         {
             if (string.IsNullOrWhiteSpace(CodeSequenceRaw)) return System.Array.Empty<int>();
-            var tokens = CodeSequenceRaw.Trim().Split(new[] { ' ', ',', ';' },
+            var tokens = CodeSequenceRaw.Trim().Split(new[] { ' ', ',', ';', '-', '/' },
                 System.StringSplitOptions.RemoveEmptyEntries);
             var list = new System.Collections.Generic.List<int>(tokens.Length);
             foreach (var t in tokens)
@@ -63,7 +70,7 @@ public class JournalDayData : ScriptableObject
         get
         {
             if (string.IsNullOrWhiteSpace(HiddenSlotIndicesRaw)) return System.Array.Empty<int>();
-            var tokens = HiddenSlotIndicesRaw.Trim().Split(new[] { ' ', ',', ';' },
+            var tokens = HiddenSlotIndicesRaw.Trim().Split(new[] { ' ', ',', ';', '-' },
                 System.StringSplitOptions.RemoveEmptyEntries);
             var list = new System.Collections.Generic.List<int>(tokens.Length);
             foreach (var t in tokens)

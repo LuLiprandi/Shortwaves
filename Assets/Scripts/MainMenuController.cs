@@ -11,7 +11,7 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private RectTransform[] frequencyBars;
     [SerializeField] private TextMeshProUGUI subtitleLabel;
     [SerializeField] private GameObject optionsPanel;
-    [SerializeField] private GameObject journalPanel;
+    [SerializeField] private GameObject sauvegardePanel;
 
     [Header("Barres de fréquence")]
     [SerializeField] private float minBarHeight = 3f;
@@ -47,7 +47,7 @@ public class MainMenuController : MonoBehaviour
             noiseOffsets[i] = Random.Range(0f, 100f);
 
         optionsPanel?.SetActive(false);
-        journalPanel?.SetActive(false);
+        sauvegardePanel?.SetActive(false);
     }
 
     private void Update()
@@ -92,14 +92,14 @@ public class MainMenuController : MonoBehaviour
     {
         bool open = optionsPanel != null && optionsPanel.activeSelf;
         optionsPanel?.SetActive(!open);
-        journalPanel?.SetActive(false);
+        sauvegardePanel?.SetActive(false);
     }
 
-    /// <summary>Bascule le panneau Journal.</summary>
-    public void OnJournal()
+    /// <summary>Bascule le panneau Sauvegarde.</summary>
+    public void OnSauvegarde()
     {
-        bool open = journalPanel != null && journalPanel.activeSelf;
-        journalPanel?.SetActive(!open);
+        bool open = sauvegardePanel != null && sauvegardePanel.activeSelf;
+        sauvegardePanel?.SetActive(!open);
         optionsPanel?.SetActive(false);
     }
 

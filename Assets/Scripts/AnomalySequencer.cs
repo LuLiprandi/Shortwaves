@@ -18,13 +18,18 @@ public class AnomalySequencer : MonoBehaviour
     [SerializeField] private RadioSystem radioSystem;
 
     [Tooltip("Target frequency for the anomaly broadcast (MHz). Knob will snap here.")]
-    [SerializeField] private float anomalyFrequencyMHz = 100f;
+    [SerializeField] private float anomalyFrequencyMHz = 103f;
 
-    [Tooltip("Anomaly voice clip played once at 100 MHz.")]
+    [Tooltip("Anomaly voice clip played once at the anomaly frequency.")]
     [SerializeField] private AudioClip anomalyVoiceClip;
 
     [Tooltip("Optional subtitles for the anomaly voice clip.")]
     [SerializeField] private SubtitleEntry[] anomalySubtitles = System.Array.Empty<SubtitleEntry>();
+
+    [Header("Decoder — post-message")]
+    [Tooltip("Indices (0-based) of code slots to hide after the voice clip ends. " +
+             "Leave empty to keep all codes visible.")]
+    [SerializeField] private int[] slotsToHideAfterMessage = System.Array.Empty<int>();
 
     [Header("AnomalieJ1 Overlay")]
     [Tooltip("Sprite shown fullscreen after the anomaly broadcast.")]
@@ -84,6 +89,13 @@ public class AnomalySequencer : MonoBehaviour
         else if (anomalyVoiceClip != null)
         {
             yield return new WaitForSeconds(anomalyVoiceClip.length);
+        }
+
+        // Hide the configured slots now that the message has been delivered
+        if (slotsToHideAfterMessage != null && slotsToHideAfterMessage.Length > 0)
+        {
+            var panel = JournalManager.Instance?.GetJournalPanel();
+            panel?.HideSlots(slotsToHideAfterMessage);
         }
 
         yield return new WaitForSeconds(overlayDelay);

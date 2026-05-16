@@ -18,7 +18,10 @@ MonoBehaviour:
     les ventilations... J\u2019ai \xE9galement beaucoup cogit\xE9 sur les \xE9v\xE9nements
     d' hier mais je dois rester concentr\xE9 sur les messages, c'est ma mission."
   PostAnomalyThoughts: 
-  CodeSequenceRaw: 
-  HiddenSlotIndicesRaw: 
-  OfficialMessageDecoded: 
+  RadioVoiceClip: {fileID: 0}
+  RadioSubtitles: []
+  CodeSequenceRaw: ' 7 - 1 - 0 - 0 - 1 - 53 - 6 / 1 - 8 - 3 / 50 - 4 - 58 - 3 - 57
+    - 94 - 3 '
+  HiddenSlotIndicesRaw: '1-4-6-10 '
+  OfficialMessageDecoded: lennemi est partout
   AnomalyNote: 

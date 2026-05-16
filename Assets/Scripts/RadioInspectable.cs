@@ -32,6 +32,10 @@ public class RadioInspectable : MonoBehaviour, IInteractable
 
         if (focusController != null)
             focusController.OnFocusExited += OnFocusExit;
+
+        // La radio est déjà déverrouillée à partir du Jour 2 (cassette insérée au Jour 1).
+        if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentDay > 1)
+            Unlock();
     }
 
     private void OnDestroy()

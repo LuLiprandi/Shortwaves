@@ -88,11 +88,12 @@ public class JournalPanel : MonoBehaviour
     private class SlotData
     {
         public int             code;
-        public bool            isHidden;       // Partial: must be found via radio
-        public bool            codeResolved;   // Partial/Full: player has entered the code correctly
-        public string          letterInput;    // Current letter(s) the player typed
+        public bool            isHidden;        // Slot masqué : le joueur doit saisir le chiffre lui-même
+        public bool            codeResolved;    // Partial/Full : le code numérique est connu/affiché
+        public string          letterInput;     // Lettre(s) saisie(s) par le joueur
         public GameObject      root;
-        public TextMeshProUGUI codeText;
+        public TextMeshProUGUI codeText;        // Texte statique (slots visibles)
+        public TMP_InputField  codeInputField;  // Champ de saisie numérique (slots masqués)
         public TMP_InputField  letterField;
         public Image           bg;
         public Image           focusOutline;
@@ -199,6 +200,24 @@ public class JournalPanel : MonoBehaviour
     }
 
     /// <summary>
+    /// Ouvre le journal uniquement sur l'onglet "pensées" avec un texte fourni en paramètre.
+    /// Utilisé par Day2AnomalySequencer pour afficher la pensée post-choix sans passer par JournalDayData.
+    /// Le décodeur est masqué.
+    /// </summary>
+    public void ShowWithThoughts(int day, string thoughts)
+    {
+        currentDay = day;
+        dayTitleTmp.text         = "Carnet  -  Jour " + day;
+        journalSectionLabel.text = "Jour " + day + " :";
+        thoughtsTmp.text         = thoughts;
+
+        decoderTabGO.SetActive(false);
+
+        SetTab(true);
+        gameObject.SetActive(true);
+    }
+
+    /// <summary>
     /// Same as Show() but opens directly on the decoder tab.
     /// Called automatically after the radio voice clip ends.
     /// </summary>
@@ -223,6 +242,103 @@ public class JournalPanel : MonoBehaviour
 
     /// <summary>Updates thoughts text while the panel is already open.</summary>
     public void UpdateThoughts(string t) => thoughtsTmp.text = t;
+
+    /// <summary>
+    /// Switches the specified slots to "self-fill" mode:
+    /// the static code text is replaced by an editable numeric field so the player
+    /// can write down the number they heard on the radio, and the letter field is
+    /// (re-)enabled so they can also translate it.
+    /// Called by JournalManager after the radio voice clip ends.
+    /// </summary>
+    public void HideSlots(int[] indices)
+    {
+        if (slots == null || indices == null) return;
+
+        foreach (int i in indices)
+        {
+            if (i < 0 || i >= slots.Length) continue;
+            var sd = slots[i];
+            if (sd.codeInputField != null) continue; // déjà converti
+
+            // Masquer le texte statique
+            sd.codeText.text  = "";
+            sd.codeText.color = Color.clear;
+            sd.bg.color       = ColSlotHidden;
+            sd.isHidden       = true;
+
+            // Installer un champ de saisie numérique à la place
+            InstallCodeInputField(sd, i);
+
+            // Réactiver le champ lettre — le joueur remplit les deux
+            if (sd.letterField != null)
+                sd.letterField.interactable = !decodingComplete;
+
+            // Le slot est considéré "prêt" pour la validation dès que le joueur l'a rempli
+            sd.codeResolved = true;
+        }
+
+        // Déplacer le focus sur le premier slot interactable
+        if (focusedSlot >= 0 && focusedSlot < (slots?.Length ?? 0)
+            && slots[focusedSlot].isHidden)
+            SetFocus(FindFirstInputSlot());
+    }
+
+    private void InstallCodeInputField(SlotData sd, int index)
+    {
+        var fieldGO = MakeGO("CodeInput" + index, sd.root.transform);
+        var fieldRT = fieldGO.AddComponent<RectTransform>();
+        fieldRT.anchorMin        = new Vector2(0f, 1f);
+        fieldRT.anchorMax        = new Vector2(1f, 1f);
+        fieldRT.pivot            = new Vector2(0.5f, 1f);
+        fieldRT.sizeDelta        = new Vector2(-4f, 42f);
+        fieldRT.anchoredPosition = Vector2.zero;
+        fieldGO.AddComponent<Image>().color = new Color(ColInk.r, ColInk.g, ColInk.b, 0.07f);
+
+        var field = fieldGO.AddComponent<TMP_InputField>();
+
+        // Zone de texte avec masque
+        var aGO = MakeGO("A", fieldGO.transform);
+        var aRT = aGO.AddComponent<RectTransform>();
+        Stretch(aRT); aRT.offsetMin = new Vector2(2f, 1f); aRT.offsetMax = new Vector2(-2f, -1f);
+        aGO.AddComponent<RectMask2D>();
+
+        // Placeholder — affiche __ tant que le champ est vide
+        var phGO = MakeGO("Placeholder", aGO.transform);
+        Stretch(phGO.AddComponent<RectTransform>());
+        var phTmp       = phGO.AddComponent<TextMeshProUGUI>();
+        phTmp.text      = "__";
+        phTmp.fontSize  = 16f;
+        phTmp.color     = ColMuted;
+        phTmp.fontStyle = FontStyles.Bold;
+        phTmp.alignment = TextAlignmentOptions.Center;
+
+        // Texte saisi par le joueur
+        var tGO = MakeGO("T", aGO.transform);
+        Stretch(tGO.AddComponent<RectTransform>());
+        var tmp       = tGO.AddComponent<TextMeshProUGUI>();
+        tmp.fontSize  = 16f;
+        tmp.color     = ColInk;
+        tmp.fontStyle = FontStyles.Bold;
+        tmp.alignment = TextAlignmentOptions.Center;
+
+        field.textViewport      = aRT;
+        field.textComponent     = tmp;
+        field.placeholder       = phTmp;
+        field.customCaretColor  = true;
+        field.caretColor        = ColInk;
+        field.caretWidth        = 2;
+        field.caretBlinkRate    = 0.85f;
+        field.selectionColor    = new Color(ColInk.r, ColInk.g, ColInk.b, 0.22f);
+        field.characterLimit    = 3;
+        field.contentType       = TMP_InputField.ContentType.IntegerNumber;
+        field.lineType          = TMP_InputField.LineType.SingleLine;
+        field.interactable      = !decodingComplete;
+
+        var fNav = Navigation.defaultNavigation; fNav.mode = Navigation.Mode.None;
+        field.navigation = fNav;
+
+        sd.codeInputField = field;
+    }
 
     /// <summary>
     /// Called by RadioSystem after a successful QTE for the current day.
@@ -734,6 +850,7 @@ public class JournalPanel : MonoBehaviour
 
         foreach (var sd in slots)
         {
+            // Un slot masqué en mode self-fill est toujours considéré prêt (codeResolved = true)
             if (!sd.codeResolved)
             {
                 SetFeedback("Des codes radio manquent encore — continuez d'écouter.", ColWrong);
@@ -767,7 +884,10 @@ public class JournalPanel : MonoBehaviour
 
         if (validateBtn != null) validateBtn.interactable = false;
         foreach (var sd in slots)
-            if (sd.letterField != null) sd.letterField.interactable = false;
+        {
+            if (sd.letterField    != null) sd.letterField.interactable    = false;
+            if (sd.codeInputField != null) sd.codeInputField.interactable = false;
+        }
 
         SaveDecoderState();
         OnMessageDecoded?.Invoke();

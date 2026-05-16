@@ -169,15 +169,23 @@ public class RadioSystem : MonoBehaviour
 
         // Arrêter le son de proximité, jouer le message vocal une seule fois
         StopDecoding();
-        if (activeStation.VoiceClip != null)
+
+        // Préférer le clip défini dans JournalDayData (par jour), sinon utiliser celui de la station
+        AudioClip     voiceClip = JournalManager.Instance?.GetCurrentDayVoiceClip()
+                               ?? activeStation.VoiceClip;
+        SubtitleEntry[] subs    = (JournalManager.Instance?.GetCurrentDayVoiceClip() != null)
+                               ? JournalManager.Instance.GetCurrentDaySubtitles()
+                               : activeStation.Subtitles;
+
+        if (voiceClip != null)
         {
-            decodingAudioSource.clip   = activeStation.VoiceClip;
+            decodingAudioSource.clip   = voiceClip;
             decodingAudioSource.loop   = false;
             decodingAudioSource.volume = 1f;
             decodingAudioSource.Play();
 
-            if (subtitleSystem != null && activeStation.Subtitles.Length > 0)
-                subtitleSystem.Play(decodingAudioSource, activeStation.Subtitles);
+            if (subtitleSystem != null && subs != null && subs.Length > 0)
+                subtitleSystem.Play(decodingAudioSource, subs);
         }
 
         // Ouvrir le décodeur à slots — le joueur entre le code après avoir écouté

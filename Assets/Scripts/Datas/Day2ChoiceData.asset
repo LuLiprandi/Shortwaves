@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18d334015264fc84c8aacfec537e086e, type: 3}
+  m_Name: Day2ChoiceData
+  m_EditorClassIdentifier: 
+  PreAnomalyThoughts: "J'ai mal dormi. Le vent fait un bruit de sifflement bizarre,
+    comme si on m'appelait. J'ai \xE9galement beaucoup cogit\xE9 sur les \xE9v\xE9nements
+    d'hier mais je dois rester concentr\xE9 sur les messages, c'est ma mission."
+  PostAnomalyThoughts_Opened: "J'ai ouvert. Je suis un idiot. Le froid est entr\xE9
+    d'un coup, mais il n'y avait personne. Rien que le noir de la temp\xEAte. Pourtant,
+    je jurerais que les coups venaient de l'ext\xE9rieur. Maintenant, j'ai l'impression
+    que l'air du bunker a chang\xE9... comme si j'avais laiss\xE9 entrer quelque
+    chose. J'ai rallum\xE9 la radio, la voix a disparu. Pourquoi j'ai ouvert ?"
+  PostAnomalyThoughts_Ignored: "Je n'ai pas boug\xE9. J'ai serr\xE9 les poings et
+    j'ai attendu que \xE7a s'arr\xEAte. \xC7a a frapp\xE9 si fort... j'ai cru que
+    le m\xE9tal allait c\xE9der. Quiconque \u2013 ou quoi que ce soit \u2013 \xE9tait
+    derri\xE8re cette porte, c'est parti. Ou alors, \xE7a attend juste le bon moment.
+    La voix de l'ancien s'est tue d'un coup apr\xE8s le dernier coup. J'ai sauv\xE9
+    ma peau pour cette nuit, mais je vais devenir fou \xE0 force de fixer cette poign\xE9e."
+  OfficialMessageDecoded: L ENNEMI EST PARTOUT
+  OfficialMessageCoded: 7-1-0-0-1-53-6 / 1-8-3 / 50-4-58-3-57-94-3
+  ChoicePromptText: "Des coups \xE0 la porte. Quelqu'un \u2014 ou quelque chose \u2014
+    est l\xE0."
+  ButtonLabelOpen: Ouvrir
+  ButtonLabelIgnore: Ignorer
+  SfxFootstepsVents: {fileID: 8300000, guid: b22f81e5fe04d4f4390bb76c83cde49a, type: 3}
+  SfxKnocking: {fileID: 8300000, guid: 25777e03dfbb94f48b842bab323c473b, type: 3}
+  SfxFinalBang: {fileID: 8300000, guid: 8a58ef19e95fe53468e52474e7aea39b, type: 3}
+  SfxDoorCreak: {fileID: 8300000, guid: 6c643f0243e254d41a60d959fd498654, type: 3}
+  SfxBlizzardGust: {fileID: 0}
+  SfxLampRelight: {fileID: 0}
+  SfxRadioStatic: {fileID: 0}
+  FootstepsDuration: 8
+  KnockingDuration: 5
+  DelayBeforeJournal: 1.2
+  BlizzardGustDuration: 3
+  BangInterval: 1
+  HeavyKnockCount: 3

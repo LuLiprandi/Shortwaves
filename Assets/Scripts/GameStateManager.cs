@@ -1,4 +1,5 @@
 using System;
+using Shortwaves;
 using UnityEngine;
 
 /// <summary>
@@ -20,9 +21,12 @@ public class GameStateManager : MonoBehaviour
 
     // ── État public (lecture seule) ───────────────────────────────────────────
 
-    public int  CurrentDay       { get; private set; } = 1;
-    public bool IsCutsceneActive { get; private set; } = false;
-    public bool IsPostAnomaly    { get; private set; } = false;
+    public int            CurrentDay       { get; private set; } = 1;
+    public bool           IsCutsceneActive { get; private set; } = false;
+    public bool           IsPostAnomaly    { get; private set; } = false;
+
+    /// <summary>Choix du joueur face à la porte du Jour 2. Persisté entre sessions.</summary>
+    public Day2DoorChoice Day2Choice       { get; private set; } = Day2DoorChoice.None;
 
     /// <summary>
     /// Vrai si au moins un système a ouvert une UI bloquante (journal, décodeur, options…).
@@ -43,6 +47,7 @@ public class GameStateManager : MonoBehaviour
 
     private const string PrefDay          = "gsm_day";
     private const string PrefPostAnomaly  = "gsm_post";
+    private const string PrefDay2Choice   = "gsm_day2choice";
 
     private int _blockingUICount = 0;
 
@@ -98,6 +103,14 @@ public class GameStateManager : MonoBehaviour
         OnDayChanged?.Invoke(CurrentDay);
     }
 
+    /// <summary>Enregistre le choix du joueur face à la porte du Jour 2.</summary>
+    public void SetDay2Choice(Day2DoorChoice choice)
+    {
+        Day2Choice = choice;
+        PlayerPrefs.SetInt(PrefDay2Choice, (int)choice);
+        PlayerPrefs.Save();
+    }
+
     // ── API publique — UI bloquante ───────────────────────────────────────────
 
     /// <summary>
@@ -133,7 +146,8 @@ public class GameStateManager : MonoBehaviour
 
     private void LoadState()
     {
-        CurrentDay = PlayerPrefs.GetInt(PrefDay, 1);
+        CurrentDay  = PlayerPrefs.GetInt(PrefDay, 1);
+        Day2Choice  = (Day2DoorChoice)PlayerPrefs.GetInt(PrefDay2Choice, 0);
         // IsPostAnomaly is intentionally NOT restored: every session starts in pre-anomaly state
         // so the journal always shows pre-anomaly thoughts and the anomaly sequence can replay.
         IsPostAnomaly = false;
