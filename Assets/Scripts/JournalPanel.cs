@@ -557,7 +557,7 @@ public class JournalPanel : MonoBehaviour
         var tblBtn = tblGO.AddComponent<Button>(); tblBtn.targetGraphic = tblBg;
         var tblNav = Navigation.defaultNavigation; tblNav.mode = Navigation.Mode.None; tblBtn.navigation = tblNav;
         tblBtn.onClick.AddListener(ToggleKeyOverlay);
-        var tblLbl = MakeTMP("L", tblGO.transform, "TABLE", 11f, ColInkDim, FontStyles.Bold);
+        var tblLbl = MakeTMP("L", tblGO.transform, "CODE", 11f, ColInkDim, FontStyles.Bold);
         tblLbl.alignment = TextAlignmentOptions.Center; tblLbl.characterSpacing = 1f;
         Stretch(tblLbl.GetComponent<RectTransform>());        // Close button
         var cGO = MakeGO("Close", h.transform);

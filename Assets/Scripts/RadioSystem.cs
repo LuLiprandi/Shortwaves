@@ -248,6 +248,14 @@ public class RadioSystem : MonoBehaviour
     }
 
     /// <summary>
+    /// Masque immédiatement le visualiseur de fréquence (appelé dès que le code est validé).
+    /// </summary>
+    public void HideFrequencyVisualizer()
+    {
+        frequencyVisualizer?.SetVisible(false);
+    }
+
+    /// <summary>
     /// Relâche le verrou Escape et sort le focus radio après la séquence anomalie.
     /// Appelé par AnomalySequencer une fois l'overlay AnomalieJ1 fermé.
     /// </summary>

@@ -228,7 +228,12 @@ public class JournalManager : MonoBehaviour
     /// <summary>Called when the player validates the correct decoded message in the journal.</summary>
     private void HandleMessageDecoded()
     {
-        GameStateManager.Instance?.TriggerAnomaly();
+        // Ne pas déclencher TriggerAnomaly() ici : l'AnomalySequencer s'en charge en fin de séquence,
+        // afin que IsPostAnomaly (et donc l'accès au lit) ne soit activé qu'après l'anomalie complète.
+
+        // Masquer le visualiseur fréquence radio immédiatement
+        var radioSystem = FindFirstObjectByType<RadioSystem>();
+        radioSystem?.HideFrequencyVisualizer();
 
         // Close the journal first, then trigger the day-appropriate anomaly sequence
         Close();

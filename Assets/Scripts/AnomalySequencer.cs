@@ -135,6 +135,10 @@ public class AnomalySequencer : MonoBehaviour
             RestorePlayerControl();
 
         // ── Phase 4 : open journal on post-anomaly thoughts ───────────────────
+        // C'est seulement ici que l'anomalie est officiellement terminée :
+        // IsPostAnomaly passe à true, ce qui déverrouille l'accès au lit.
+        GameStateManager.Instance?.TriggerAnomaly();
+
         yield return new WaitForSeconds(0.3f);
         JournalManager.Instance?.OpenOnPostAnomalyThoughts();
     }
