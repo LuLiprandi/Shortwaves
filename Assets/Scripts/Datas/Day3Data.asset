@@ -29,10 +29,10 @@ MonoBehaviour:
     pi\xE8ce, juste \xE0 la limite de ma lampe de bureau. Ma t\xEAte me joue des
     tours \xE0 force d'\xEAtre enferm\xE9. Allumons cette radio, le bruit des chiffres
     me fera du bien."
-  OfficialMessageDecoded: MOURIR POUR LA PATRIE
+  OfficialMessageDecoded: mourir pour la patrie
   OfficialFrequencyMHz: 85
   SfxWhisperMessage: {fileID: 0}
-  SfxRadioViolentStatic: {fileID: 0}
+  SfxRadioViolentStatic: {fileID: 8300000, guid: cabbb8e1e73c834448fe401367e43bb2, type: 3}
   WhisperFrequencyMHz: 75
   ViolentStaticDuration: 2.5
   SilenceDuration: 1.8

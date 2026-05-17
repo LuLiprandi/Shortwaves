@@ -461,7 +461,7 @@ namespace Shortwaves
             promptTMP.fontSize         = 22f;
             promptTMP.color            = Color.white;
             promptTMP.alignment        = TextAlignmentOptions.Center;
-            promptTMP.enableWordWrapping = true;
+            promptTMP.textWrappingMode = TMPro.TextWrappingModes.Normal;
 
             // Bouton "Ouvrir" (gauche)
             CreateChoiceButton(choiceUIRoot.transform,

@@ -26,7 +26,7 @@ MonoBehaviour:
     derri\xE8re cette porte, c'est parti. Ou alors, \xE7a attend juste le bon moment.
     La voix de l'ancien s'est tue d'un coup apr\xE8s le dernier coup. J'ai sauv\xE9
     ma peau pour cette nuit, mais je vais devenir fou \xE0 force de fixer cette poign\xE9e."
-  OfficialMessageDecoded: L ENNEMI EST PARTOUT
+  OfficialMessageDecoded: lennemi est partout
   OfficialMessageCoded: 7-1-0-0-1-53-6 / 1-8-3 / 50-4-58-3-57-94-3
   ChoicePromptText: "Des coups \xE0 la porte. Quelqu'un \u2014 ou quelque chose \u2014
     est l\xE0."

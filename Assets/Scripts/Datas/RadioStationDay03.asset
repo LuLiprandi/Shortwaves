@@ -17,7 +17,7 @@ MonoBehaviour:
   LockRangeMHz: 0.8
   ProximityClip: {fileID: 0}
   VoiceClip: {fileID: 0}
-  QTESuccessDuration: 4
+  QTESuccessDuration: 8
   SolutionCode: 
   ClueText: 
   Subtitles: []
