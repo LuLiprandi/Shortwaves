@@ -72,9 +72,26 @@ public class RadioInspectable : MonoBehaviour, IInteractable
             radioSystem.SetActive(false);
     }
 
+    /// <summary>
+    /// Resets the focused state without deactivating the radio.
+    /// Called by RadioSystem after an anomaly sequence to ensure the interaction prompt
+    /// reappears even if OnFocusExited was not fired (e.g. focus exited programmatically).
+    /// </summary>
+    public void ResetFocusState()
+    {
+        isFocused = false;
+    }
+
     /// <summary>Unlocks the radio interaction after the intro cutscene is complete.</summary>
     public void Unlock()
     {
         isUnlocked = true;
+    }
+
+    /// <summary>Permanently disables the radio interaction prompt. Called after an anomaly sequence completes.</summary>
+    public void Lock()
+    {
+        isUnlocked = false;
+        isFocused  = false;
     }
 }

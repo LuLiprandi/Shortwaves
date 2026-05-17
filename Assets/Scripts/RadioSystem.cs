@@ -27,6 +27,7 @@ public class RadioSystem : MonoBehaviour
     [SerializeField] private RadioDecoderPanel decoderPanel;
     [SerializeField] private SubtitleSystem subtitleSystem;
     [SerializeField] private CameraFocusController focusController;
+    [SerializeField] private RadioInspectable radioInspectable;
 
     [Header("Audio")]
     [SerializeField] private float signalFadeSpeed = 2f;
@@ -264,7 +265,22 @@ public class RadioSystem : MonoBehaviour
         if (focusController != null)
             focusController.LockEscape = false;
 
+        // Reset the inspectable's focused state explicitly before exiting focus.
+        // ExitFocus() may be skipped (e.g. transition already in progress), which
+        // would leave isFocused = true on RadioInspectable and hide the prompt forever.
+        radioInspectable?.ResetFocusState();
+
         ExitFocusAndDeactivate();
+    }
+
+    /// <summary>
+    /// Désactive définitivement l'interaction avec la radio après la fin d'une anomalie.
+    /// Appelé par les séquenceurs d'anomalie (Jour 1, Jour 2, etc.).
+    /// </summary>
+    public void LockInteraction()
+    {
+        SetActive(false);
+        radioInspectable?.Lock();
     }
 
     private void ExitFocusAndDeactivate()

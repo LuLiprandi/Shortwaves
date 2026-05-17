@@ -6708,6 +6708,8 @@ MonoBehaviour:
   doorApproachDistance: 1.2
   doorWalkSpeed: 2.5
   doorTurnSpeed: 120
+  doorLookTarget: {fileID: 0}
+  doorLookSpeed: 80
   cameraShakeTarget: {fileID: 0}
   shakeAmplitude: 0.04
   shakeFrequency: 18
@@ -9428,6 +9430,7 @@ MonoBehaviour:
   decoderPanel: {fileID: 2026489352}
   subtitleSystem: {fileID: 57597239}
   focusController: {fileID: 1983508991}
+  radioInspectable: {fileID: 1843953569}
   signalFadeSpeed: 2
 --- !u!82 &1843953571
 AudioSource:

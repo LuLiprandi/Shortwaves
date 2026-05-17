@@ -130,7 +130,10 @@ public class AnomalySequencer : MonoBehaviour
 
         // Release radio focus
         if (radioSystem != null)
+        {
             radioSystem.ReleaseAfterAnomaly();
+            radioSystem.LockInteraction();
+        }
         else
             RestorePlayerControl();
 
