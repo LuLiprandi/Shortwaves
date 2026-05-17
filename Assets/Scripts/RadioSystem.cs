@@ -74,10 +74,16 @@ public class RadioSystem : MonoBehaviour
 
         if (!active)
         {
-            StopDecoding();
+            // Ne pas couper l'audio ni les sous-titres si le clip vocal est en cours de lecture
+            // (état Decoded = le joueur écoute le message radio, le journal peut être ouvert par-dessus)
+            if (State != RadioState.Decoded)
+            {
+                StopDecoding();
+                subtitleSystem?.Stop();
+            }
+
             if (State == RadioState.QTE) ExitQTE();
             decoderPanel?.Hide();
-            subtitleSystem?.Stop();
             State = RadioState.Idle;
         }
         else if (State == RadioState.Idle)
@@ -196,16 +202,18 @@ public class RadioSystem : MonoBehaviour
         qteGauge.SetVisible(false);
         frequencyVisualizer.HideQTEAlert();
 
-        // Arrêter le son de proximité, jouer le message vocal une seule fois
+        // Arrêter le son de proximité
         StopDecoding();
 
-        // Préférer le clip défini dans JournalDayData (par jour), sinon utiliser celui de la station
-        AudioClip     voiceClip = JournalManager.Instance?.GetCurrentDayVoiceClip()
-                               ?? activeStation.VoiceClip;
-        SubtitleEntry[] subs    = (JournalManager.Instance?.GetCurrentDayVoiceClip() != null)
-                               ? JournalManager.Instance.GetCurrentDaySubtitles()
-                               : activeStation.Subtitles;
+        // Clip et sous-titres définis directement sur la RadioStationData du jour
+        AudioClip       voiceClip = activeStation?.VoiceClip;
+        SubtitleEntry[] subs      = activeStation?.Subtitles ?? System.Array.Empty<SubtitleEntry>();
 
+        Debug.Log($"[RadioSystem] QTE Success — activeStation={activeStation?.name ?? "NULL"} " +
+                  $"voiceClip={voiceClip?.name ?? "NULL"} " +
+                  $"subtitleSystem={subtitleSystem != null} subs={(subs?.Length ?? 0)}");
+
+        // Lancer l'audio et les sous-titres immédiatement
         if (voiceClip != null)
         {
             decodingAudioSource.clip   = voiceClip;
@@ -213,32 +221,30 @@ public class RadioSystem : MonoBehaviour
             decodingAudioSource.volume = 1f;
             decodingAudioSource.Play();
 
+            Debug.Log($"[RadioSystem] Play() appelé — isPlaying={decodingAudioSource.isPlaying}");
+
             if (subtitleSystem != null && subs != null && subs.Length > 0)
                 subtitleSystem.Play(decodingAudioSource, subs);
         }
+        else
+        {
+            Debug.LogWarning("[RadioSystem] HandleQTESuccess : aucun VoiceClip trouvé pour ce jour.");
+        }
 
-        // Ouvrir le décodeur à slots — le joueur entre le code après avoir écouté
-        decoderPanel?.Initialize(activeStation.SolutionCode);
+        // Ouvrir le décodeur à slots
+        decoderPanel?.Initialize(activeStation?.SolutionCode ?? "");
         OnStationDecoded?.Invoke(activeStation);
 
-        // Déverrouille l'onglet décodage du journal pour le jour en cours
+        // Déverrouille l'onglet décodage du journal
         JournalManager.Instance?.GetJournalPanel()?.UnlockDecoder();
 
-        // Dès que le clip se termine, verrouiller l'Escape et ouvrir le journal automatiquement
-        StartCoroutine(AutoOpenJournalAfterClip());
-    }
-
-    private System.Collections.IEnumerator AutoOpenJournalAfterClip()
-    {
-        // Attendre la fin du clip vocal
-        yield return new WaitUntil(() => !decodingAudioSource.isPlaying);
-
-        // Bloquer la sortie de focus radio — le joueur ne peut plus quitter la radio manuellement
+        // Bloquer l'Escape et ouvrir le journal immédiatement — l'audio joue par-dessus
         if (focusController != null)
             focusController.LockEscape = true;
 
-        // Ouvrir le journal directement sur l'onglet décodage
         JournalManager.Instance?.OpenOnDecoderTab();
+
+        Debug.Log($"[RadioSystem] Après OpenOnDecoderTab — isPlaying={decodingAudioSource.isPlaying} volume={decodingAudioSource.volume}");
     }
 
     /// <summary>
@@ -321,6 +327,32 @@ public class RadioSystem : MonoBehaviour
             frequencyVisualizer?.SetVisible(false);
 
         OnAnomalyBroadcastComplete?.Invoke();
+    }
+
+    /// <summary>
+    /// Joue un burst de grésillo radio pendant la durée indiquée puis s'arrête.
+    /// Utilise le ProximityClip de la station active, ou un clip fourni en paramètre.
+    /// </summary>
+    public void PlayStaticBurst(float duration, AudioClip overrideClip = null)
+    {
+        StartCoroutine(StaticBurstRoutine(duration, overrideClip));
+    }
+
+    private System.Collections.IEnumerator StaticBurstRoutine(float duration, AudioClip overrideClip)
+    {
+        AudioClip clip = overrideClip;
+        if (clip == null && activeStation != null) clip = activeStation.ProximityClip;
+        if (clip == null) yield break;
+
+        decodingAudioSource.clip   = clip;
+        decodingAudioSource.loop   = true;
+        decodingAudioSource.volume = 1f;
+        decodingAudioSource.Play();
+
+        yield return new WaitForSeconds(duration);
+
+        decodingAudioSource.Stop();
+        decodingAudioSource.volume = 0f;
     }
 
     private void StopDecoding()

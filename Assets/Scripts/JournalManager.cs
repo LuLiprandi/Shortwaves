@@ -90,14 +90,21 @@ public class JournalManager : MonoBehaviour
     /// Returns the voice clip configured for the current day in JournalDayData.
     /// Returns null if no clip is set, so the caller can fall back to RadioStationData.VoiceClip.
     /// </summary>
-    public AudioClip GetCurrentDayVoiceClip() => GetCurrentData()?.RadioVoiceClip;
+    public AudioClip GetCurrentDayVoiceClip()
+    {
+        try { return GetCurrentData()?.RadioVoiceClip; }
+        catch (UnityEngine.UnassignedReferenceException) { return null; }
+    }
 
     /// <summary>
     /// Returns the subtitles configured for the current day in JournalDayData.
     /// Returns an empty array if none are set.
     /// </summary>
-    public SubtitleEntry[] GetCurrentDaySubtitles() =>
-        GetCurrentData()?.RadioSubtitles ?? System.Array.Empty<SubtitleEntry>();
+    public SubtitleEntry[] GetCurrentDaySubtitles()
+    {
+        try { return GetCurrentData()?.RadioSubtitles ?? System.Array.Empty<SubtitleEntry>(); }
+        catch (UnityEngine.UnassignedReferenceException) { return System.Array.Empty<SubtitleEntry>(); }
+    }
 
     /// <summary>
     /// Opens the journal directly on the decoder tab after the radio clip ends.
@@ -190,6 +197,19 @@ public class JournalManager : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
+    }
+
+    /// <summary>
+    /// Ouvre le journal sur les pensées post-anomalie du jour en cours (PostAnomalyThoughts).
+    /// Appelé automatiquement après la fermeture de l'overlay anomalie.
+    /// </summary>
+    public void OpenOnPostAnomalyThoughts()
+    {
+        if (isOpen) return;
+        var data = GetCurrentData();
+        string thoughts = data?.PostAnomalyThoughts ?? "";
+        if (string.IsNullOrWhiteSpace(thoughts)) return;
+        OpenWithThoughts(thoughts);
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────

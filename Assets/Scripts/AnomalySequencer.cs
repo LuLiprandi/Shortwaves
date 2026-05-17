@@ -6,10 +6,11 @@ using UnityEngine.UI;
 /// <summary>
 /// Orchestrates the anomaly sequence once the player validates the journal decode:
 ///   1. Journal closes (handled by JournalManager before this is called).
-///   2. Radio snaps to 100 MHz and plays the anomaly voice clip.
-///   3. AnomalieJ1 sprite overlays the full screen.
-///   4. Player presses Escape or clicks to dismiss the overlay.
-///   5. Player regains full control.
+///   2. Radio plays the anomaly voice clip at 110 MHz.
+///   3. Screen flickers black and radio crackles.
+///   4. AnomalieJ1 sprite overlays the full screen.
+///   5. Player clicks to dismiss the overlay.
+///   6. Journal reopens on post-anomaly thoughts.
 /// </summary>
 public class AnomalySequencer : MonoBehaviour
 {
@@ -26,6 +27,19 @@ public class AnomalySequencer : MonoBehaviour
     [Tooltip("Optional subtitles for the anomaly voice clip.")]
     [SerializeField] private SubtitleEntry[] anomalySubtitles = System.Array.Empty<SubtitleEntry>();
 
+    [Header("Flicker — post-message")]
+    [Tooltip("AudioClip for radio crackle during screen flicker. Uses the active station ProximityClip if left empty.")]
+    [SerializeField] private AudioClip flickerStaticClip;
+
+    [Tooltip("Number of black screen flashes after the message.")]
+    [SerializeField] private int flickerCount = 3;
+
+    [Tooltip("Duration of each black flash (seconds).")]
+    [SerializeField] private float flickerOnDuration = 0.12f;
+
+    [Tooltip("Duration of the clear gap between flashes (seconds).")]
+    [SerializeField] private float flickerOffDuration = 0.1f;
+
     [Header("Decoder — post-message")]
     [Tooltip("Indices (0-based) of code slots to hide after the voice clip ends. " +
              "Leave empty to keep all codes visible.")]
@@ -37,9 +51,6 @@ public class AnomalySequencer : MonoBehaviour
 
     [Tooltip("Tint for the overlay background.")]
     [SerializeField] private Color overlayBackgroundColor = new Color(0f, 0f, 0f, 0.85f);
-
-    [Tooltip("Delay in seconds between end of voice clip and overlay appearing.")]
-    [SerializeField] private float overlayDelay = 0.5f;
 
     // Frequency range must match RadioSystem defaults
     private const float FrequencyMin = 88f;
@@ -75,15 +86,24 @@ public class AnomalySequencer : MonoBehaviour
         // Brief pause after journal closes
         yield return new WaitForSeconds(0.5f);
 
+        // ── Phase 1 : grésillo + clignotements avant le message ──────────────
+        float flickerTotalDuration = flickerCount * (flickerOnDuration + flickerOffDuration);
+        if (radioSystem != null)
+            radioSystem.PlayStaticBurst(flickerTotalDuration, flickerStaticClip);
+
+        yield return StartCoroutine(FlickerRoutine());
+
+        // ── Phase 2 : anomaly broadcast ───────────────────────────────────────
         float normalized = Mathf.InverseLerp(FrequencyMin, FrequencyMax, anomalyFrequencyMHz);
 
         if (radioSystem != null)
         {
+            bool broadcastDone = false;
+            radioSystem.OnAnomalyBroadcastComplete += () => broadcastDone = true;
+
             radioSystem.TriggerAnomalyBroadcast(anomalyVoiceClip, normalized,
                 anomalySubtitles.Length > 0 ? anomalySubtitles : null);
 
-            bool broadcastDone = false;
-            radioSystem.OnAnomalyBroadcastComplete += () => broadcastDone = true;
             yield return new WaitUntil(() => broadcastDone);
         }
         else if (anomalyVoiceClip != null)
@@ -98,17 +118,41 @@ public class AnomalySequencer : MonoBehaviour
             panel?.HideSlots(slotsToHideAfterMessage);
         }
 
-        yield return new WaitForSeconds(overlayDelay);
+        // ── Phase 3 : grésillo + clignotements après le message ──────────────
+        if (radioSystem != null)
+            radioSystem.PlayStaticBurst(flickerTotalDuration, flickerStaticClip);
 
-        // Show the fullscreen overlay and wait for player to dismiss it
+        yield return StartCoroutine(FlickerRoutine());
+
+        // ── Phase 3 : overlay image ───────────────────────────────────────────
         ShowOverlay();
         yield return new WaitUntil(() => overlayRoot == null || !overlayRoot.activeSelf);
 
-        // Release radio focus and restore player control
+        // Release radio focus
         if (radioSystem != null)
             radioSystem.ReleaseAfterAnomaly();
         else
             RestorePlayerControl();
+
+        // ── Phase 4 : open journal on post-anomaly thoughts ───────────────────
+        yield return new WaitForSeconds(0.3f);
+        JournalManager.Instance?.OpenOnPostAnomalyThoughts();
+    }
+
+    // ── Flicker ───────────────────────────────────────────────────────────────
+
+    private IEnumerator FlickerRoutine()
+    {
+        var fader = ScreenFader.Instance;
+        if (fader == null) yield break;
+
+        for (int i = 0; i < flickerCount; i++)
+        {
+            fader.SetBlack();
+            yield return new WaitForSeconds(flickerOnDuration);
+            fader.SetClear();
+            yield return new WaitForSeconds(flickerOffDuration);
+        }
     }
 
     // ── Overlay ───────────────────────────────────────────────────────────────

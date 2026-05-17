@@ -15,9 +15,18 @@ MonoBehaviour:
   FrequencyMHz: 95
   ProximityRangeMHz: 2.5
   LockRangeMHz: 0.8
-  ProximityClip: {fileID: 0}
-  VoiceClip: {fileID: 8300000, guid: 5c4261cd21bcea94b95ca88cca7dae83, type: 3}
+  ProximityClip: {fileID: 8300000, guid: cabbb8e1e73c834448fe401367e43bb2, type: 3}
+  VoiceClip: {fileID: 8300000, guid: 6237c42dad714434e9260fced60da856, type: 3}
   QTESuccessDuration: 4
   SolutionCode: 
   ClueText: 
-  Subtitles: []
+  Subtitles:
+  - startTime: 0
+    duration: 7
+    text: '8 - 1 - 58 - 93 - 6 - 58 '
+  - startTime: 7
+    duration: 2
+    text: '1 - 8 - 3 '
+  - startTime: 9
+    duration: 10
+    text: '94 - 0- 21 - 57 - 0 - 0 - 1 - 94 - 58 '
