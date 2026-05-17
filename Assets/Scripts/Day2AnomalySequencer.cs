@@ -88,6 +88,7 @@ namespace Shortwaves
 
         private FirstPersonController playerController;
         private InteractionSystem     interactionSystem;
+        private CameraFocusController cameraFocusController;
         private Transform             playerTransform;
 
         // Position locale originale de la caméra avant le shake
@@ -100,8 +101,9 @@ namespace Shortwaves
 
         private void Awake()
         {
-            playerController  = FindFirstObjectByType<FirstPersonController>();
-            interactionSystem = FindFirstObjectByType<InteractionSystem>();
+            playerController      = FindFirstObjectByType<FirstPersonController>();
+            interactionSystem     = FindFirstObjectByType<InteractionSystem>();
+            cameraFocusController = FindFirstObjectByType<CameraFocusController>();
             if (playerController != null)
                 playerTransform = playerController.transform;
 
@@ -222,9 +224,19 @@ namespace Shortwaves
 
         private IEnumerator DoorKnockingPhase()
         {
+            // Sortir du focus caméra (radio) s'il est encore actif
+            if (cameraFocusController != null && cameraFocusController.IsFocused)
+            {
+                cameraFocusController.ExitFocus();
+                // Attendre la fin de la transition de sortie de focus
+                yield return new WaitUntil(() => !cameraFocusController.IsFocused && !cameraFocusController.IsTransitioning);
+            }
+
             // Démarrer le regard forcé vers la porte dès les premiers coups
-            if (doorLookTarget != null)
-                lookAtDoorCoroutine = StartCoroutine(LookAtDoorRoutine());
+            // Fallback sur doorApproachPoint si doorLookTarget n'est pas assigné
+            Transform lookTarget = doorLookTarget != null ? doorLookTarget : doorApproachPoint;
+            if (lookTarget != null)
+                lookAtDoorCoroutine = StartCoroutine(LookAtDoorRoutine(lookTarget));
 
             // Premiers toquements discrets en boucle
             if (knockingSource != null && data.SfxKnocking != null)
@@ -446,19 +458,20 @@ namespace Shortwaves
         }
 
         /// <summary>
-        /// Pivote progressivement le corps du joueur et la caméra vers doorLookTarget.
+        /// Pivote progressivement le corps du joueur et la caméra vers <paramref name="target"/>.
         /// Tourne en boucle jusqu'à être stoppée explicitement.
         /// </summary>
-        private IEnumerator LookAtDoorRoutine()
+        private IEnumerator LookAtDoorRoutine(Transform target)
         {
-            if (playerTransform == null || playerController == null || doorLookTarget == null)
+            if (playerTransform == null || playerController == null || target == null)
                 yield break;
 
             Transform cam = playerController.PlayerCamera;
 
             while (true)
             {
-                Vector3 toTarget = (doorLookTarget.position - cam.position).normalized;
+                Vector3 camPos  = cam != null ? cam.position : playerTransform.position;
+                Vector3 toTarget = (target.position - camPos).normalized;
 
                 // ── Corps : rotation horizontale (axe Y) ──────────────────────
                 Vector3 flatDir = new Vector3(toTarget.x, 0f, toTarget.z);
@@ -470,10 +483,10 @@ namespace Shortwaves
                 }
 
                 // ── Caméra : pitch vertical (axe X local) ────────────────────
-                float pitchAngle = -Mathf.Asin(Mathf.Clamp(toTarget.y, -1f, 1f)) * Mathf.Rad2Deg;
-                Quaternion targetCamRot = Quaternion.Euler(pitchAngle, 0f, 0f);
                 if (cam != null)
                 {
+                    float pitchAngle      = -Mathf.Asin(Mathf.Clamp(toTarget.y, -1f, 1f)) * Mathf.Rad2Deg;
+                    Quaternion targetCamRot = Quaternion.Euler(pitchAngle, 0f, 0f);
                     cam.localRotation = Quaternion.RotateTowards(
                         cam.localRotation, targetCamRot, doorLookSpeed * Time.deltaTime);
                 }
