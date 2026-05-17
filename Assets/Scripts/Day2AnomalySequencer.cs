@@ -50,6 +50,13 @@ namespace Shortwaves
         [Tooltip("Vitesse de rotation de la caméra vers la porte pendant la marche (degrés/s).")]
         [SerializeField] private float doorTurnSpeed = 120f;
 
+        [Header("Regard vers la porte — toquements")]
+        [Tooltip("Point cible vers lequel la caméra pivotera dès les premiers toquements (placer à hauteur des yeux sur/devant la porte).")]
+        [SerializeField] private Transform doorLookTarget;
+
+        [Tooltip("Vitesse de rotation vers la porte au début des toquements (degrés/s).")]
+        [SerializeField] private float doorLookSpeed = 80f;
+
         [Header("Shake caméra — branche Ignorer")]
         [Tooltip("Transform de la caméra à secouer pendant les coups (branche Ignorer). Laisser vide = pas de shake.")]
         [SerializeField] private Transform cameraShakeTarget;
@@ -85,6 +92,9 @@ namespace Shortwaves
 
         // Position locale originale de la caméra avant le shake
         private Vector3 cameraOriginalLocalPos;
+
+        // Coroutine de regard vers la porte (toquements → fin de séquence)
+        private Coroutine lookAtDoorCoroutine;
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
@@ -136,6 +146,20 @@ namespace Shortwaves
 
             // Sauvegarder le choix dans GameStateManager (persisté)
             GameStateManager.Instance?.SetDay2Choice(playerChoice);
+
+            // Arrêter le regard forcé vers la porte
+            if (lookAtDoorCoroutine != null)
+            {
+                StopCoroutine(lookAtDoorCoroutine);
+                lookAtDoorCoroutine = null;
+            }
+
+            // Restaurer les contrôles du joueur après la séquence
+            if (playerController != null)
+            {
+                playerController.CanMove = true;
+                playerController.CanLook = true;
+            }
 
             // Délai puis ouverture automatique du journal
             yield return new WaitForSeconds(data.DelayBeforeJournal);
@@ -198,6 +222,10 @@ namespace Shortwaves
 
         private IEnumerator DoorKnockingPhase()
         {
+            // Démarrer le regard forcé vers la porte dès les premiers coups
+            if (doorLookTarget != null)
+                lookAtDoorCoroutine = StartCoroutine(LookAtDoorRoutine());
+
             // Premiers toquements discrets en boucle
             if (knockingSource != null && data.SfxKnocking != null)
             {
@@ -418,12 +446,53 @@ namespace Shortwaves
         }
 
         /// <summary>
+        /// Pivote progressivement le corps du joueur et la caméra vers doorLookTarget.
+        /// Tourne en boucle jusqu'à être stoppée explicitement.
+        /// </summary>
+        private IEnumerator LookAtDoorRoutine()
+        {
+            if (playerTransform == null || playerController == null || doorLookTarget == null)
+                yield break;
+
+            Transform cam = playerController.PlayerCamera;
+
+            while (true)
+            {
+                Vector3 toTarget = (doorLookTarget.position - cam.position).normalized;
+
+                // ── Corps : rotation horizontale (axe Y) ──────────────────────
+                Vector3 flatDir = new Vector3(toTarget.x, 0f, toTarget.z);
+                if (flatDir.sqrMagnitude > 0.001f)
+                {
+                    Quaternion targetBodyRot = Quaternion.LookRotation(flatDir);
+                    playerTransform.rotation = Quaternion.RotateTowards(
+                        playerTransform.rotation, targetBodyRot, doorLookSpeed * Time.deltaTime);
+                }
+
+                // ── Caméra : pitch vertical (axe X local) ────────────────────
+                float pitchAngle = -Mathf.Asin(Mathf.Clamp(toTarget.y, -1f, 1f)) * Mathf.Rad2Deg;
+                Quaternion targetCamRot = Quaternion.Euler(pitchAngle, 0f, 0f);
+                if (cam != null)
+                {
+                    cam.localRotation = Quaternion.RotateTowards(
+                        cam.localRotation, targetCamRot, doorLookSpeed * Time.deltaTime);
+                }
+
+                yield return null;
+            }
+        }
+
+        /// <summary>
         /// Active/désactive le mouvement et les interactions du joueur.
         /// <paramref name="lockInteractions"/> permet de garder les interactions actives pendant la phase des pas.
         /// </summary>
         private void SetPlayerMovement(bool canMove, bool lockInteractions)
         {
-            if (playerController  != null) playerController.CanMove  = canMove;
+            if (playerController != null)
+            {
+                playerController.CanMove = canMove;
+                playerController.CanLook = canMove;
+            }
             if (interactionSystem != null && lockInteractions)
                 interactionSystem.enabled = canMove;
         }

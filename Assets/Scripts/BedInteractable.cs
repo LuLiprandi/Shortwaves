@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// À placer sur le GameObject du lit.
 /// Visible uniquement après la séquence anomalie (IsPostAnomaly = true).
-/// Interaction : fondu au noir → NextDay() → fondu depuis le noir.
+/// Interaction : fondu au noir → NextDay() → titre "Jour N" → fondu depuis le noir.
 /// </summary>
 public class BedInteractable : MonoBehaviour, IInteractable
 {
@@ -15,8 +15,11 @@ public class BedInteractable : MonoBehaviour, IInteractable
     [Tooltip("Durée du fondu vers le noir (secondes).")]
     [SerializeField] private float fadeOutDuration = 1.2f;
 
-    [Tooltip("Temps d'attente à l'écran noir avant de rouvrir (secondes).")]
+    [Tooltip("Temps d'attente à l'écran noir avant d'afficher le titre du jour (secondes).")]
     [SerializeField] private float blackHoldDuration = 0.8f;
+
+    [Tooltip("Durée d'affichage du titre 'Jour N' à l'écran noir (secondes).")]
+    [SerializeField] private float dayTitleDuration = 2f;
 
     [Tooltip("Durée du fondu depuis le noir (secondes).")]
     [SerializeField] private float fadeInDuration = 1.2f;
@@ -69,6 +72,14 @@ public class BedInteractable : MonoBehaviour, IInteractable
 
         // Avancer au jour suivant
         GameStateManager.Instance.NextDay();
+
+        // Afficher le titre du nouveau jour sur le fond noir
+        if (fader != null)
+            fader.ShowDayTitle(GameStateManager.Instance.CurrentDay, dayTitleDuration);
+
+        // Attendre que le titre soit affiché avant de faire le fondu de retour
+        float totalTitleDuration = dayTitleDuration + 1.2f; // display + fades internes
+        yield return new WaitForSeconds(totalTitleDuration);
 
         // Fondu depuis le noir
         if (fader != null)

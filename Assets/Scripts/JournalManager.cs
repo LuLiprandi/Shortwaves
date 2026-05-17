@@ -172,8 +172,12 @@ public class JournalManager : MonoBehaviour
         journalPanel.Hide();
         GameStateManager.Instance.CloseBlockingUI();
 
-        if (playerController  != null) playerController.CanMove  = true;
-        if (interactionSystem != null) interactionSystem.enabled  = true;
+        if (playerController != null)
+        {
+            playerController.CanMove = true;
+            playerController.CanLook = true;
+        }
+        if (interactionSystem != null) interactionSystem.enabled = true;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible   = false;

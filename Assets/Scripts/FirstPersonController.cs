@@ -7,7 +7,7 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private float moveSpeed = 5f;
 
     [Header("Param�tres de cam�ra")]
-    [SerializeField] private float mouseSensitivity = 2f;
+    [SerializeField] private float mouseSensitivity = 1f;
     [SerializeField] private Transform playerCamera;
     [SerializeField] private float maxLookAngle = 90f;
 

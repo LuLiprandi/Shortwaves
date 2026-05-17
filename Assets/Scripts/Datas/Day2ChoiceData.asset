@@ -36,9 +36,9 @@ MonoBehaviour:
   SfxKnocking: {fileID: 8300000, guid: 25777e03dfbb94f48b842bab323c473b, type: 3}
   SfxFinalBang: {fileID: 8300000, guid: 8a58ef19e95fe53468e52474e7aea39b, type: 3}
   SfxDoorCreak: {fileID: 8300000, guid: 6c643f0243e254d41a60d959fd498654, type: 3}
-  SfxBlizzardGust: {fileID: 0}
+  SfxBlizzardGust: {fileID: 8300000, guid: d720fc041932f644386124e030d3cfe0, type: 3}
   SfxLampRelight: {fileID: 0}
-  SfxRadioStatic: {fileID: 0}
+  SfxRadioStatic: {fileID: 8300000, guid: cabbb8e1e73c834448fe401367e43bb2, type: 3}
   FootstepsDuration: 8
   KnockingDuration: 5
   DelayBeforeJournal: 1.2

@@ -3275,6 +3275,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fadeOutDuration: 1.2
   blackHoldDuration: 0.8
+  dayTitleDuration: 2
   fadeInDuration: 1.2
 --- !u!1001 &579808609
 PrefabInstance:
@@ -3424,10 +3425,13 @@ MonoBehaviour:
     duration: 5.6
     text: "Ne cherche pas \xE0 comprendre les chiffres... cherche \xE0 comprendre
       pourquoi ils te les envoient."
+  flickerStaticClip: {fileID: 0}
+  flickerCount: 3
+  flickerOnDuration: 0.12
+  flickerOffDuration: 0.1
   slotsToHideAfterMessage: 
   anomalieJ1Sprite: {fileID: 21300000, guid: f7bd756cb0efc684cac5c6cbf85c7951, type: 3}
   overlayBackgroundColor: {r: 0, g: 0, b: 0, a: 0.85}
-  overlayDelay: 0.5
 --- !u!1 &631761767 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: fc0f94ce22b3d5c4ab31e111a0ff6ccf, type: 3}
@@ -7004,7 +7008,7 @@ MonoBehaviour:
   lofiMusicClip: {fileID: 8300000, guid: 6c5360c41cb9e904abc6323505a3a8ac, type: 3}
   lofiMusicFadeInDuration: 3
   lofiMusicFadeOutDuration: 2
-  lofiMusicVolume: 1
+  lofiMusicVolume: 0.45
 --- !u!82 &1382617960
 AudioSource:
   m_ObjectHideFlags: 0
@@ -8280,6 +8284,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   defaultDuration: 1
+  initialBlackHold: 1.5
+  initialTitleDuration: 2.5
+  initialFadeInDuration: 1.5
+  dayTitleFont: {fileID: 0}
 --- !u!4 &1634600751
 Transform:
   m_ObjectHideFlags: 0
