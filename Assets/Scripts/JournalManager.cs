@@ -16,6 +16,11 @@ public class JournalManager : MonoBehaviour
     [SerializeField] private JournalPanel            journalPanel;
     [SerializeField] private AnomalySequencer        anomalySequencer;
     [SerializeField] private Shortwaves.Day2AnomalySequencer day2AnomalySequencer;
+    [SerializeField] private Shortwaves.Day3AnomalySequencer day3AnomalySequencer;
+
+    [Header("Jour 3 — données narratives (branching J2)")]
+    [Tooltip("ScriptableObject Day3Data pour les pensées du matin branching selon le choix J2.")]
+    [SerializeField] private Shortwaves.Day3Data day3Data;
 
     private FirstPersonController playerController;
     private InteractionSystem     interactionSystem;
@@ -104,9 +109,7 @@ public class JournalManager : MonoBehaviour
         isOpen = true;
 
         var data     = GetCurrentData();
-        var thoughts = GameStateManager.Instance.IsPostAnomaly
-            ? data?.PostAnomalyThoughts ?? ""
-            : data?.PreAnomalyThoughts  ?? "";
+        var thoughts = GetMorningThoughts();
 
         int[]  codeSeq         = data?.CodeSequence        ?? System.Array.Empty<int>();
         int[]  hiddenIndices   = data?.HiddenSlotIndices    ?? System.Array.Empty<int>();
@@ -135,9 +138,7 @@ public class JournalManager : MonoBehaviour
         isOpen = true;
 
         var data     = GetCurrentData();
-        var thoughts = GameStateManager.Instance.IsPostAnomaly
-            ? data?.PostAnomalyThoughts ?? ""
-            : data?.PreAnomalyThoughts  ?? "";
+        var thoughts = GetMorningThoughts();
 
         int[]  codeSeq        = data?.CodeSequence        ?? System.Array.Empty<int>();
         int[]  hiddenIndices  = data?.HiddenSlotIndices    ?? System.Array.Empty<int>();
@@ -208,8 +209,11 @@ public class JournalManager : MonoBehaviour
         // Close the journal first, then trigger the day-appropriate anomaly sequence
         Close();
 
-        if (GameStateManager.Instance.CurrentDay == 2)
+        int day = GameStateManager.Instance.CurrentDay;
+        if (day == 2)
             day2AnomalySequencer?.TriggerSequence();
+        else if (day == 3)
+            day3AnomalySequencer?.TriggerSequence();
         else
             anomalySequencer?.TriggerSequence();
     }
@@ -219,5 +223,26 @@ public class JournalManager : MonoBehaviour
         if (days == null || days.Length == 0) return null;
         int idx = GameStateManager.Instance.CurrentDay - 1;
         return days[Mathf.Clamp(idx, 0, days.Length - 1)];
+    }
+
+    /// <summary>
+    /// Retourne les pensées du matin pour le jour en cours.
+    /// Au Jour 3, les pensées sont branching selon le choix de la porte au Jour 2.
+    /// </summary>
+    private string GetMorningThoughts()
+    {
+        int day = GameStateManager.Instance.CurrentDay;
+
+        if (day == 3 && day3Data != null)
+        {
+            return GameStateManager.Instance.Day2Choice == Shortwaves.Day2DoorChoice.Opened
+                ? day3Data.MorningThoughts_Opened
+                : day3Data.MorningThoughts_Ignored;
+        }
+
+        var data = GetCurrentData();
+        return GameStateManager.Instance.IsPostAnomaly
+            ? data?.PostAnomalyThoughts ?? ""
+            : data?.PreAnomalyThoughts  ?? "";
     }
 }

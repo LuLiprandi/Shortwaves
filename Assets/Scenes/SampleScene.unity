@@ -415,32 +415,68 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   subtitleText: {fileID: 165160120}
   subtitles:
-  - startTime: 5
+  - startTime: 7.12
     duration: 5
     text: " Si vous entendez cet enregistrement, c\u2019est que vous avez atteint
       le Poste 4 en toute s\xE9curit\xE9. "
-  - startTime: 11
+  - startTime: 13
     duration: 4
     text: "Comme vous le savez, notre nation est en proie \xE0 une guerre contre
       l\u2019ennemi."
-  - startTime: 15.5
+  - startTime: 17.15
     duration: 5
     text: "Nous pr\xE9f\xE9rons prendre toutes nos pr\xE9cautions et intercepter
       les potentielles menaces."
-  - startTime: 20.1
+  - startTime: 22.14
     duration: 2.2
     text: "C\u2019est en quoi, votre mission est d'intercepter,"
-  - startTime: 23.03
+  - startTime: 25.09
     duration: 1
     text: 'analyser '
-  - startTime: 23.03
-    duration: 4
+  - startTime: 26
+    duration: 3.5
     text: "et d\xE9chiffrer chaque transmission ennemie gr\xE2ce \xE0 cette vieille
       radio."
-  - startTime: 23.03
+  - startTime: 29.19
+    duration: 4.5
+    text: "Pour l'instant, \xE9crivez ce que vous d\xE9chiffrez sur le carnet \xE0
+      votre disposition,"
+  - startTime: 34.02
+    duration: 2
+    text: "nous le r\xE9cup\xE9rerons \xE0 la fin de votre s\xE9jour ici."
+  - startTime: 37.06
+    duration: 1
+    text: "Le bunker est scell\xE9,"
+  - startTime: 38.15
+    duration: 1
+    text: "les vivres sont stock\xE9s,"
+  - startTime: 40.01
+    duration: 1.5
+    text: "et les g\xE9n\xE9rateurs sont stables."
+  - startTime: 42.4
+    duration: 3
+    text: 'Vous avez exactement sept jours de rations. '
+  - startTime: 45.08
+    duration: 5
+    text: "Vous trouverez la cl\xE9 de d\xE9codage sous cette cassette. Ne la perdez
+      pas"
+  - startTime: 50.09
+    duration: 4.03
+    text: "La temp\xEAte de neige \xE0 l\u2019ext\xE9rieur a atteint son pic de cat\xE9gorie
+      5."
+  - startTime: 55.02
+    duration: 3
+    text: "Elle est imp\xE9n\xE9trable, pour le monde ext\xE9rieur."
+  - startTime: 58.19
     duration: 4
-    text: "et d\xE9chiffrer chaque transmission ennemie gr\xE2ce \xE0 cette vieille
-      radio."
+    text: "Pour vous, le monde ext\xE9rieur s'arr\xEAte \xE0 cette porte m\xE9tallique.
+      ."
+  - startTime: 1.03
+    duration: 1.1
+    text: "C\u2019est votre meilleure protection"
+  - startTime: 58.19
+    duration: 4
+    text: personne ne peut entrer, et vous ne pouvez pas sortir.
 --- !u!4 &57597240
 Transform:
   m_ObjectHideFlags: 0
@@ -3151,6 +3187,8 @@ MonoBehaviour:
   journalPanel: {fileID: 1585625291}
   anomalySequencer: {fileID: 587977818}
   day2AnomalySequencer: {fileID: 1379701929}
+  day3AnomalySequencer: {fileID: 1327385499}
+  day3Data: {fileID: 11400000, guid: 66291602d4e663246b75f008f4bedf60, type: 2}
 --- !u!4 &587977817
 Transform:
   m_ObjectHideFlags: 0
@@ -6162,6 +6200,151 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!1 &1327385497
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1327385500}
+  - component: {fileID: 1327385499}
+  - component: {fileID: 1327385498}
+  m_Layer: 0
+  m_Name: Day3AnomalySequencer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!82 &1327385498
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1327385497}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &1327385499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1327385497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6501c2017cf91a4c9382aefb0f750ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 66291602d4e663246b75f008f4bedf60, type: 2}
+  radioSystem: {fileID: 1843953570}
+  anomalySource: {fileID: 1327385498}
+--- !u!4 &1327385500
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1327385497}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1337237877 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 673a94eb97191b64f91cacb9c9e1b6c9, type: 3}
@@ -6313,6 +6496,10 @@ MonoBehaviour:
   - {fileID: 1337237877}
   ventProximityRadius: 2.5
   deskLamp: {fileID: 1073125433}
+  doorApproachPoint: {fileID: 0}
+  doorApproachDistance: 1.2
+  doorWalkSpeed: 2.5
+  doorTurnSpeed: 120
   cameraShakeTarget: {fileID: 0}
   shakeAmplitude: 0.04
   shakeFrequency: 18
@@ -6608,7 +6795,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e70347710b1c4a742afcd9e63657b477, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  introClip: {fileID: 8300000, guid: 8571c9f2b82c9c149926afd380907504, type: 3}
+  introClip: {fileID: 8300000, guid: 06b3af3108bc7bb4290d89caf084e7c9, type: 3}
   subtitleSystem: {fileID: 57597239}
   lofiMusicClip: {fileID: 8300000, guid: 6c5360c41cb9e904abc6323505a3a8ac, type: 3}
   lofiMusicFadeInDuration: 3
@@ -10444,6 +10631,9 @@ SceneRoots:
   - {fileID: 1585625292}
   - {fileID: 587977817}
   - {fileID: 208671320}
+  - {fileID: 1634600751}
+  - {fileID: 1379701930}
+  - {fileID: 1327385500}
   - {fileID: 286465452}
   - {fileID: 1042116533}
   - {fileID: 5314102619189117492}
@@ -10451,5 +10641,3 @@ SceneRoots:
   - {fileID: 1267195717}
   - {fileID: 1869232857}
   - {fileID: 1290181745}
-  - {fileID: 1634600751}
-  - {fileID: 1379701930}

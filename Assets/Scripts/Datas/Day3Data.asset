@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fa5ec2fc7162f047af2e43a4fa99e0c, type: 3}
+  m_Name: Day3Data
+  m_EditorClassIdentifier: 
+  MorningThoughts_Opened: "J'ai froid. Je n'arrive pas \xE0 me r\xE9chauffer depuis
+    hier soir. J'ai attrap\xE9 une toux s\xE8che qui me d\xE9chire la gorge \xE0
+    chaque fois que je respire, le bruit r\xE9sonne dans tout le bunker, c'est insupportable.
+    Le givre commence m\xEAme \xE0 s'installer sur les tuyaux de la douche. Tout
+    \xE7a parce que j'ai ouvert cette maudite porte... pour ne trouver que du vent.
+    Pourquoi j'ai fait \xE7a ? Le protocole disait de rester assis, de ne pas ouvrir.
+    J'ai d\xE9sob\xE9i pour rien. Allez, au travail, je dois me concentrer, \xE7a
+    me changera les id\xE9es. Et je commence \xE0 croire que ces messages ne viennent
+    pas de nos ennemis..."
+  MorningThoughts_Ignored: "Je n'ai pas ferm\xE9 l'\u0153il de la nuit. D\xE8s que
+    je baisse la garde, j'entends ces trois coups violents qui font trembler le m\xE9tal
+    dans ma t\xEAte. J'ai bien fait de ne pas bouger de ma chaise, quelque chose
+    ou quelqu'un voulait vraiment entrer. La poign\xE9e n'a pas boug\xE9 depuis,
+    mais j'ai l'impression de voir des ombres glisser dans les coins sombres de la
+    pi\xE8ce, juste \xE0 la limite de ma lampe de bureau. Ma t\xEAte me joue des
+    tours \xE0 force d'\xEAtre enferm\xE9. Allumons cette radio, le bruit des chiffres
+    me fera du bien."
+  OfficialMessageDecoded: MOURIR POUR LA PATRIE
+  OfficialFrequencyMHz: 85
+  SfxWhisperMessage: {fileID: 0}
+  SfxRadioViolentStatic: {fileID: 0}
+  WhisperFrequencyMHz: 75
+  ViolentStaticDuration: 2.5
+  SilenceDuration: 1.8
+  DelayBeforeFade: 1.2
+  FadeDuration: 2
