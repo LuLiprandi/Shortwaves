@@ -10,7 +10,14 @@ public class RadioSystem : MonoBehaviour
     [Header("Configuration")]
     [SerializeField] private float frequencyMin = 88f;
     [SerializeField] private float frequencyMax = 108f;
+
+    [Tooltip("Station unique utilisée si stationsPerDay est vide (rétro-compatibilité).")]
     [SerializeField] private RadioStationData[] stations;
+
+    [Header("Stations par jour (index 0 = Jour 1, index 1 = Jour 2, …)")]
+    [Tooltip("Une RadioStationData par jour. Au démarrage, seule la station du jour courant est active. " +
+             "Si ce tableau est rempli, il remplace le tableau 'stations' ci-dessus.")]
+    [SerializeField] private RadioStationData[] stationsPerDay;
 
     [Header("Références")]
     [SerializeField] private RotatableKnob knob;
@@ -37,6 +44,28 @@ public class RadioSystem : MonoBehaviour
 
     private bool isActive;
     private RadioStationData activeStation;
+
+    private void Start()
+    {
+        ApplyDayStation();
+    }
+
+    /// <summary>
+    /// Sélectionne la station correspondant au jour courant depuis stationsPerDay.
+    /// Si stationsPerDay est vide, le tableau stations reste inchangé (rétro-compatibilité).
+    /// </summary>
+    private void ApplyDayStation()
+    {
+        if (stationsPerDay == null || stationsPerDay.Length == 0) return;
+
+        int dayIndex = (GameStateManager.Instance?.CurrentDay ?? 1) - 1;
+        dayIndex = Mathf.Clamp(dayIndex, 0, stationsPerDay.Length - 1);
+
+        RadioStationData dayStation = stationsPerDay[dayIndex];
+        stations = dayStation != null
+            ? new RadioStationData[] { dayStation }
+            : System.Array.Empty<RadioStationData>();
+    }
 
     /// <summary>Activates or deactivates the radio interaction system.</summary>
     public void SetActive(bool active)

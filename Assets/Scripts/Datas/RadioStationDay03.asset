@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6f3828b85690f9340942afc16339c2cf, type: 3}
-  m_Name: RadioStation
+  m_Name: RadioStationDay03
   m_EditorClassIdentifier: 
-  FrequencyMHz: 103
+  FrequencyMHz: 85
   ProximityRangeMHz: 2.5
   LockRangeMHz: 0.8
   ProximityClip: {fileID: 0}
-  VoiceClip: {fileID: 8300000, guid: 5c4261cd21bcea94b95ca88cca7dae83, type: 3}
+  VoiceClip: {fileID: 0}
   QTESuccessDuration: 4
   SolutionCode: 
   ClueText: 
