@@ -25,7 +25,7 @@ namespace Shortwaves
         {
             if (!isActive || hasBeenUsed) return;
             hasBeenUsed = true;
-            sequencer?.OnDoorOpened();
+            // La cinématique de fin est désormais gérée directement par Day4EndingSequencer.
         }
 
         // ── API publique ──────────────────────────────────────────────────────

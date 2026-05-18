@@ -25,8 +25,21 @@ public class MainMenuSavePanel : MonoBehaviour
     [SerializeField] private Image           slot2Background;
     [SerializeField] private TextMeshProUGUI slot2LoadLabel;
 
+    [Header("Slot 3 — Jour 4 Fin A")]
+    [SerializeField] private Button          slot3Button;
+    [SerializeField] private Image           slot3Background;
+    [SerializeField] private TextMeshProUGUI slot3LoadLabel;
+
+    [Header("Slot 4 — Jour 4 Fin B")]
+    [SerializeField] private Button          slot4Button;
+    [SerializeField] private Image           slot4Background;
+    [SerializeField] private TextMeshProUGUI slot4LoadLabel;
+
     [Header("Reset")]
     [SerializeField] private Button resetButton;
+
+    [Header("Slot container (scroll)")]
+    [SerializeField] private Transform slotContainer;
 
     private static readonly Color ActiveBg   = new Color(0.22f, 0.17f, 0.04f, 1f);
     private static readonly Color InactiveBg = new Color(0.12f, 0.10f, 0.05f, 1f);
@@ -43,6 +56,8 @@ public class MainMenuSavePanel : MonoBehaviour
         slot0Button?.onClick.AddListener(() => LoadSlot(0));
         slot1Button?.onClick.AddListener(() => LoadSlot(1));
         slot2Button?.onClick.AddListener(() => LoadSlot(2));
+        slot3Button?.onClick.AddListener(() => LoadSlot(3));
+        slot4Button?.onClick.AddListener(() => LoadSlot(4));
         resetButton?.onClick.AddListener(() => { SaveSlotManager.ResetAll(); Refresh(); });
     }
 
@@ -55,11 +70,23 @@ public class MainMenuSavePanel : MonoBehaviour
     /// <summary>Updates button labels and background tints to reflect the currently active slot.</summary>
     private void Refresh()
     {
-        int currentDay = SaveSlotManager.GetCurrentDay();
+        int currentDay       = SaveSlotManager.GetCurrentDay();
+        int currentDay2Choice = PlayerPrefs.GetInt("gsm_day2choice", 0);
 
-        SetSlotState(slot0Background, slot0LoadLabel, SaveSlotManager.Slots[0].Day == currentDay);
-        SetSlotState(slot1Background, slot1LoadLabel, SaveSlotManager.Slots[1].Day == currentDay);
-        SetSlotState(slot2Background, slot2LoadLabel, SaveSlotManager.Slots[2].Day == currentDay);
+        SetSlotState(slot0Background, slot0LoadLabel,
+            SaveSlotManager.Slots[0].Day == currentDay);
+
+        SetSlotState(slot1Background, slot1LoadLabel,
+            SaveSlotManager.Slots[1].Day == currentDay);
+
+        SetSlotState(slot2Background, slot2LoadLabel,
+            SaveSlotManager.Slots[2].Day == currentDay && currentDay == 3);
+
+        SetSlotState(slot3Background, slot3LoadLabel,
+            currentDay == 4 && currentDay2Choice == 1);
+
+        SetSlotState(slot4Background, slot4LoadLabel,
+            currentDay == 4 && currentDay2Choice == 2);
     }
 
     private static void SetSlotState(Image bg, TextMeshProUGUI label, bool isActive)

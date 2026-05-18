@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53edc59fc62932c4da66cfe9d7ec6bc6, type: 3}
+  m_Name: Day4Data
+  m_EditorClassIdentifier: 
+  Thoughts_FinA: "Plus aucun signal. Rien. Le gouvernement ne r\xE9pond plus. En
+    relisant mes notes depuis le premier jour, tout s'assemble... Tout \xE9tait faux.
+    Les codes ennemis, la guerre, les fr\xE9quences... Tout \xE9tait une mise en
+    sc\xE8ne macabre pour tester mes limites. Je ne suis pas un soldat en mission,
+    je suis un rat de laboratoire dans une bo\xEEte en b\xE9ton. Et j'ai \xE9chou\xE9
+    en ouvrant cette porte au jour 2. J'ai laiss\xE9 entrer le froid, j'ai laiss\xE9
+    la parano\xEFa me bouffer. La voix de l'ancien op\xE9rateur crie dans ma t\xEAte,
+    elle ne s'arr\xEAtera jamais si je reste ici. Les murs de ce bunker me tuent.
+    Je pr\xE9f\xE8re sortir, affronter la temp\xEAte et mourir libre, plut\xF4t que
+    de rester assis \xE0 attendre qu'ils viennent m'achever."
+  Thoughts_FinB: "Le silence est absolu. Pas de transmission. Rien. J'ai repris mes
+    fiches, mes calculs depuis le Jour 1... et la v\xE9rit\xE9 me donne la naus\xE9e.
+    C'est une exp\xE9rience. Les chiffres \xE0 d\xE9coder, les pas dans la ventilation,
+    les coups violents \xE0 la porte... Tout \xE9tait orchestr\xE9 par notre propre
+    arm\xE9e pour analyser ma r\xE9sistance psychologique et ma docilit\xE9 face
+    \xE0 l'isolement. Et j'ai \xE9t\xE9 le cobaye parfait. J'ai serr\xE9 les dents,
+    j'ai ignor\xE9 les appels, je suis rest\xE9 assis comme un bon petit soldat.
+    Je suis le Sujet 48. J'ai r\xE9ussi leur maudit test. Au moment o\xF9 j'\xE9cris
+    ces lignes, j'entends les verrous hydrauliques de la porte principale se d\xE9clencher
+    de l'ext\xE9rieur. Ils reviennent me chercher. L'exp\xE9rience est termin\xE9e...
+    mais je sais qu'une partie de moi est rest\xE9e bloqu\xE9e dans ce silence."
+  EndingImageFinA: {fileID: 2800000, guid: e7d2388675a1e0841accda74891a1fcd, type: 3}
+  SfxFinA: {fileID: 0}
+  SfxDoorBlizzard: {fileID: 8300000, guid: d720fc041932f644386124e030d3cfe0, type: 3}
+  SfxDoorClose: {fileID: 8300000, guid: 6c643f0243e254d41a60d959fd498654, type: 3}
+  EndingImageFinB: {fileID: 2800000, guid: 53aedc1ae8da9f94ba0fd560ca9e68c8, type: 3}
+  SfxFinB: {fileID: 8300000, guid: d720fc041932f644386124e030d3cfe0, type: 3}
+  SfxAlarm: {fileID: 8300000, guid: 45d638c2dbc9f764ab60e58b859d1fa0, type: 3}
+  FadeDuration: 1.5
+  DelayAfterJournalClose: 1.2
+  EndingImageFadeInDuration: 2.5
+  EndingImageHoldDuration: 5
+  FadeToBlackBeforeCredits: 2
+  FinA_DelayBeforeDoorActive: 0.5
+  FinA_BlizzardFadeDuration: 2
+  FinA_WhiteHoldDuration: 1.5
+  FinB_DelayBeforeAlarm: 1.5
+  FinB_AlarmDuration: 3
+  FinB_LightFadeDuration: 1.8
+  FinB_WhiteHoldDuration: 0.6

@@ -41,8 +41,8 @@ namespace Shortwaves
 
         [Header("Fin A — cinématique")]
 
-        [Tooltip("Image de fin Fin A (l'opérateur de dos dans la neige).")]
-        public Sprite EndingImageFinA;
+        [Tooltip("Image de fin Fin A (l'opérateur de dos dans la neige). Accepte une Texture2D ou un Sprite.")]
+        public Texture2D EndingImageFinA;
 
         [Tooltip("Son joué pendant la cinématique de Fin A (blizzard, vent).")]
         public AudioClip SfxFinA;
@@ -57,8 +57,8 @@ namespace Shortwaves
 
         [Header("Fin B — cinématique")]
 
-        [Tooltip("Image de fin Fin B (l'opérateur de dos dans la salle d'hôpital psychiatrique).")]
-        public Sprite EndingImageFinB;
+        [Tooltip("Image de fin Fin B (l'opérateur de dos dans la salle d'hôpital psychiatrique). Accepte une Texture2D ou un Sprite.")]
+        public Texture2D EndingImageFinB;
 
         [Tooltip("Son joué pendant la cinématique de Fin B (alarme industrielle, pas, voix).")]
         public AudioClip SfxFinB;

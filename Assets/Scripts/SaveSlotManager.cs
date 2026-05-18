@@ -49,6 +49,18 @@ public static class SaveSlotManager
             day:         3,
             day2Choice:  1
         ),
+        new SaveSnapshot(
+            label:       "Jour 4 — Fin A (porte ouverte)",
+            description: "Fin A : le joueur a ouvert la porte au Jour 2.",
+            day:         4,
+            day2Choice:  1
+        ),
+        new SaveSnapshot(
+            label:       "Jour 4 — Fin B (porte ignorée)",
+            description: "Fin B : le joueur a ignoré la porte au Jour 2.",
+            day:         4,
+            day2Choice:  2
+        ),
     };
 
     // ── API ───────────────────────────────────────────────────────────────────
