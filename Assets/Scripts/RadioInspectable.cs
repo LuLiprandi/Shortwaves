@@ -1,6 +1,5 @@
 using UnityEngine;
 
-/// <summary>Handles [E] interaction to focus the camera on the radio and activate the radio system.</summary>
 public class RadioInspectable : MonoBehaviour, IInteractable
 {
     [Header("Inspection Settings")]
@@ -61,34 +60,30 @@ public class RadioInspectable : MonoBehaviour, IInteractable
 
         if (radioSystem != null)
             radioSystem.SetActive(true);
+
+        HintDisplay.Instance?.ShowHint("[Echap] Quitter la radio");
     }
 
-    /// <summary>Called externally when the camera focus exits (e.g. player presses Escape).</summary>
     public void OnFocusExit()
     {
         isFocused = false;
 
         if (radioSystem != null)
             radioSystem.SetActive(false);
+
+        HintDisplay.Instance?.Hide();
     }
 
-    /// <summary>
-    /// Resets the focused state without deactivating the radio.
-    /// Called by RadioSystem after an anomaly sequence to ensure the interaction prompt
-    /// reappears even if OnFocusExited was not fired (e.g. focus exited programmatically).
-    /// </summary>
     public void ResetFocusState()
     {
         isFocused = false;
     }
 
-    /// <summary>Unlocks the radio interaction after the intro cutscene is complete.</summary>
     public void Unlock()
     {
         isUnlocked = true;
     }
 
-    /// <summary>Permanently disables the radio interaction prompt. Called after an anomaly sequence completes.</summary>
     public void Lock()
     {
         isUnlocked = false;

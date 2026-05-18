@@ -9,7 +9,6 @@ public class CutsceneController : MonoBehaviour
     [SerializeField] private IntroAudioSequencer audioSequencer;
     [SerializeField] private CinematicRadioActivation radioActivation;
 
-    /// <summary>Triggered when the player inserts the cassette into the tape recorder.</summary>
     public void TriggerCutscene()
     {
         GameStateManager.Instance.StartCutscene();

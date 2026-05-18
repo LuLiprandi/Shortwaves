@@ -3,17 +3,6 @@ using UnityEngine;
 
 namespace Shortwaves
 {
-    /// <summary>
-    /// Orchestre la séquence anomalie du Jour 3 :
-    ///   1. Le journal se ferme (géré par JournalManager avant l'appel).
-    ///   2. La radio grésille violemment puis s'arrête net.
-    ///   3. Silence pesant.
-    ///   4. Un message chuchoté et grésillé : « ILS M'ONT TUÉ » sur une fréquence fantôme.
-    ///   5. Fondu au noir — le joueur perd le contrôle.
-    ///   6. Passage au Jour 4 via GameStateManager.NextDay().
-    ///
-    /// Appeler TriggerSequence() depuis JournalManager après la validation du décodage.
-    /// </summary>
     public class Day3AnomalySequencer : MonoBehaviour
     {
         [Header("Data")]
@@ -57,10 +46,6 @@ namespace Shortwaves
 
         // ── API publique ──────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Déclenche la séquence complète du Jour 3.
-        /// Idempotent — ne s'exécute qu'une seule fois par session.
-        /// </summary>
         public void TriggerSequence()
         {
             if (sequencePlayed || data == null) return;
@@ -178,7 +163,6 @@ namespace Shortwaves
             yield return new WaitUntil(() => titleDone || ScreenFader.Instance == null);
 
             // Passer le relais — ne pas FadeIn ni UnlockPlayer ici
-            Debug.Log($"[Day3] Title done, calling BeginDay4. day4EndingSequencer={day4EndingSequencer}");
             day4EndingSequencer?.BeginDay4();
         }
 

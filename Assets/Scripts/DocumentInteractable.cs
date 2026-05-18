@@ -10,10 +10,6 @@ public class DocumentInteractable : MonoBehaviour, IInteractable
     public static bool IsReading { get; private set; }
     public static bool EscapeConsumedThisFrame { get; private set; }
 
-    /// <summary>
-    /// Allows other systems (e.g. CameraFocusController) to mark Escape as consumed
-    /// this frame so ChairInteractable does not also process it.
-    /// </summary>
     public static void ConsumeEscape() => EscapeConsumedThisFrame = true;
 
     private FirstPersonController playerController;
@@ -41,7 +37,6 @@ public class DocumentInteractable : MonoBehaviour, IInteractable
         }
     }
 
-    /// <summary>Opens the document overlay and locks player movement.</summary>
     public void Interact()
     {
         if (IsReading) return;

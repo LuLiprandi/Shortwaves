@@ -2,22 +2,11 @@ using UnityEngine;
 
 namespace Shortwaves
 {
-    // ── Enum partagé — choix de la porte du Jour 2 ───────────────────────────
-
-    /// <summary>Trace le choix du joueur face à la porte au Jour 2.</summary>
     public enum Day2DoorChoice { None, Opened, Ignored }
 
-    // ── ScriptableObject — données du Jour 2 ─────────────────────────────────
-
-    /// <summary>
-    /// ScriptableObject — données narratives et audio de la séquence du Jour 2.
-    /// Créer via : clic droit > Create > Shortwaves > Day 2 Choice Data
-    /// </summary>
     [CreateAssetMenu(fileName = "Day2ChoiceData", menuName = "Shortwaves/Day 2 Choice Data")]
     public class Day2ChoiceData : ScriptableObject
     {
-        // ── Journal — pensées ─────────────────────────────────────────────────
-
         [Header("Journal — pensées de l'opérateur")]
 
         [TextArea(4, 10)]
@@ -41,8 +30,6 @@ namespace Shortwaves
             "l'ancien s'est tue d'un coup après le dernier coup. J'ai sauvé ma peau pour cette nuit, " +
             "mais je vais devenir fou à force de fixer cette poignée.";
 
-        // ── Message radio ─────────────────────────────────────────────────────
-
         [Header("Décodage — message radio")]
 
         [Tooltip("Message déchiffré affiché dans le journal après décodage.")]
@@ -50,8 +37,6 @@ namespace Shortwaves
 
         [Tooltip("Représentation codée du message, affichée dans le décodeur.")]
         public string OfficialMessageCoded = "7-1-0-0-1-53-6 / 1-8-3 / 50-4-58-3-57-94-3";
-
-        // ── UI — choix ────────────────────────────────────────────────────────
 
         [Header("UI — prompt de choix")]
 
@@ -63,8 +48,6 @@ namespace Shortwaves
 
         [Tooltip("Libellé du bouton pour ignorer les coups.")]
         public string ButtonLabelIgnore = "Ignorer";
-
-        // ── Audio — clips ─────────────────────────────────────────────────────
 
         [Header("Audio — effets sonores")]
 
@@ -89,8 +72,6 @@ namespace Shortwaves
         [Tooltip("Parasite radio statique joué avant que la radio se coupe.")]
         public AudioClip SfxRadioStatic;
 
-        // ── Timing ────────────────────────────────────────────────────────────
-
         [Header("Timing — durées et intervalles (secondes)")]
 
         [Tooltip("Durée totale des pas dans les conduits avant les premiers toquements.")]
@@ -108,8 +89,6 @@ namespace Shortwaves
         [Tooltip("Intervalle entre chaque coup lourd (branche Ignorer).")]
         public float BangInterval = 1.0f;
 
-        // ── Paramètres ────────────────────────────────────────────────────────
-
         [Header("Paramètres — coups")]
 
         [Tooltip("Nombre de coups lourds joués avant le bang final (branche Ignorer).")]
@@ -118,8 +97,8 @@ namespace Shortwaves
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            if (HeavyKnockCount < 1)  HeavyKnockCount = 1;
-            if (BangInterval    < 0.1f) BangInterval  = 0.1f;
+            if (HeavyKnockCount < 1)    HeavyKnockCount = 1;
+            if (BangInterval    < 0.1f) BangInterval    = 0.1f;
         }
 #endif
     }

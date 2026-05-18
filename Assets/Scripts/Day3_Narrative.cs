@@ -2,15 +2,9 @@ using UnityEngine;
 
 namespace Shortwaves
 {
-    /// <summary>
-    /// ScriptableObject — données narratives et audio de la séquence anomalie du Jour 3.
-    /// Créer via : clic droit > Create > Shortwaves > Day 3 Data
-    /// </summary>
     [CreateAssetMenu(fileName = "Day3Data", menuName = "Shortwaves/Day 3 Data")]
     public class Day3Data : ScriptableObject
     {
-        // ── Journal — pensées du matin (branching selon choix J2) ─────────────
-
         [Header("Journal — pensées du matin (Version A : porte OUVERTE au J2)")]
         [TextArea(6, 14)]
         public string MorningThoughts_Opened =
@@ -32,8 +26,6 @@ namespace Shortwaves
             "de la pièce, juste à la limite de ma lampe de bureau. Ma tête me joue des tours à force " +
             "d'être enfermé. Allumons cette radio, le bruit des chiffres me fera du bien.";
 
-        // ── Décodage — message officiel ───────────────────────────────────────
-
         [Header("Décodage — message officiel")]
 
         [Tooltip("Message déchiffré attendu dans le journal (solution).")]
@@ -41,8 +33,6 @@ namespace Shortwaves
 
         [Tooltip("Fréquence (MHz) où se trouve le message officiel.")]
         public float OfficialFrequencyMHz = 85f;
-
-        // ── Anomalie — message chuchoté ───────────────────────────────────────
 
         [Header("Anomalie — message chuchoté")]
 
@@ -58,8 +48,6 @@ namespace Shortwaves
         [Tooltip("Fréquence fantôme (MHz) affichée sur la radio pendant le chuchotement. " +
                  "Doit être hors de la plage normale (88-108 MHz).")]
         public float WhisperFrequencyMHz = 75f;
-
-        // ── Timing ────────────────────────────────────────────────────────────
 
         [Header("Timing (secondes)")]
 

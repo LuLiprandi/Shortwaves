@@ -1,11 +1,6 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>
-/// À placer sur le GameObject du lit.
-/// Visible uniquement après la séquence anomalie (IsPostAnomaly = true).
-/// Interaction : fondu au noir → NextDay() → titre "Jour N" → fondu depuis le noir.
-/// </summary>
 public class BedInteractable : MonoBehaviour, IInteractable
 {
     private const string PromptActive   = "Appuyer sur [E] pour aller dormir";
@@ -26,15 +21,11 @@ public class BedInteractable : MonoBehaviour, IInteractable
 
     private bool isTransitioning = false;
 
-    // ── IInteractable ─────────────────────────────────────────────────────────
-
-    /// <summary>Le prompt s'affiche uniquement en post-anomalie.</summary>
     public string PromptMessage =>
         GameStateManager.Instance != null && GameStateManager.Instance.IsPostAnomaly
             ? PromptActive
             : PromptDisabled;
 
-    /// <summary>Lance la séquence de transition jour si les conditions sont réunies.</summary>
     public void Interact()
     {
         if (isTransitioning) return;
@@ -45,16 +36,12 @@ public class BedInteractable : MonoBehaviour, IInteractable
         StartCoroutine(SleepRoutine());
     }
 
-    // ── Séquence ──────────────────────────────────────────────────────────────
-
     private IEnumerator SleepRoutine()
     {
         isTransitioning = true;
 
-        // Bloquer toute entrée joueur pendant la transition
         GameStateManager.Instance.StartCutscene();
 
-        // Fondu vers le noir
         ScreenFader fader = ScreenFader.Instance;
         if (fader != null)
         {
@@ -67,22 +54,16 @@ public class BedInteractable : MonoBehaviour, IInteractable
             yield return new WaitForSeconds(fadeOutDuration);
         }
 
-        // Pause à l'écran noir
         yield return new WaitForSeconds(blackHoldDuration);
 
-        // Avancer au jour suivant
         GameStateManager.Instance.NextDay();
 
-        // Afficher le titre du nouveau jour sur le fond noir
         if (fader != null)
             fader.ShowDayTitle(GameStateManager.Instance.CurrentDay, dayTitleDuration);
 
-        // Attendre que le titre soit affiché
-        float totalTitleDuration = dayTitleDuration + 1.2f; // display + fades internes
+        float totalTitleDuration = dayTitleDuration + 1.2f;
         yield return new WaitForSeconds(totalTitleDuration);
 
-        // Jour 4 : laisser Day4EndingSequencer gérer la suite (journal sur fond noir, etc.)
-        // On ne fait pas de FadeIn ici — BeginDay4() le fera au bon moment.
         if (GameStateManager.Instance.CurrentDay == 4)
         {
             GameStateManager.Instance.EndCutscene();
@@ -90,7 +71,6 @@ public class BedInteractable : MonoBehaviour, IInteractable
             yield break;
         }
 
-        // Fondu depuis le noir pour les jours normaux
         if (fader != null)
         {
             bool done = false;
@@ -102,7 +82,6 @@ public class BedInteractable : MonoBehaviour, IInteractable
             yield return new WaitForSeconds(fadeInDuration);
         }
 
-        // Rendre le contrôle au joueur
         GameStateManager.Instance.EndCutscene();
 
         isTransitioning = false;

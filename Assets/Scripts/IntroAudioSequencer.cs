@@ -34,18 +34,17 @@ public class IntroAudioSequencer : MonoBehaviour
         musicSource.volume = 0f;
     }
 
-    /// <summary>Plays the intro clip with subtitles, then starts the lofi music and unlocks the player.</summary>
     public void PlaySequence()
     {
         if (introClip == null)
         {
-            Debug.LogWarning("IntroAudioSequencer: aucun clip assign�.", this);
             OnSequenceComplete?.Invoke();
             return;
         }
 
         IsIntroPlaying = true;
-        StartCoroutine(PlayRoutine());    }
+        StartCoroutine(PlayRoutine());
+    }
 
     private IEnumerator PlayRoutine()
     {

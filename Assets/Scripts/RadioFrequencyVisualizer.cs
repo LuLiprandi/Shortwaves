@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>Animates the frequency bar display, moves the needle, and shows QTE alerts and decoded clues.</summary>
 public class RadioFrequencyVisualizer : MonoBehaviour
 {
     [Header("Barres UI")]
@@ -57,17 +56,12 @@ public class RadioFrequencyVisualizer : MonoBehaviour
         // Plus de logique de flash — le bandeau QTE est géré par Show/HideQTEAlert
     }
 
-    /// <summary>Shows or hides the entire visualizer.</summary>
     public void SetVisible(bool visible)
     {
         if (visualizerRoot != null)
             visualizerRoot.SetActive(visible);
     }
 
-    /// <summary>
-    /// Updates bars height from signal strength (0-1), moves the needle,
-    /// and refreshes the frequency label. Call every frame from RadioSystem.
-    /// </summary>
     public void UpdateVisualizer(float currentFrequency, float signalStrength, float normalizedFrequency)
     {
         if (frequencyLabel != null)
@@ -102,22 +96,19 @@ public class RadioFrequencyVisualizer : MonoBehaviour
         }
     }
 
-    /// <summary>Shows the QTE instruction banner — stays visible until HideQTEAlert() is called.</summary>
     public void ShowQTEAlert()
     {
         if (qteAlertRoot == null) return;
         qteAlertRoot.SetActive(true);
         if (qteAlertLabel != null)
-            qteAlertLabel.text = "← →   Garde l'aiguille dans la zone verte";
+            qteAlertLabel.text = "<size=150%>← →</size>   Garde l'aiguille dans la zone verte";
     }
 
-    /// <summary>Immediately hides the QTE instruction banner.</summary>
     public void HideQTEAlert()
     {
         if (qteAlertRoot != null) qteAlertRoot.SetActive(false);
     }
 
-    /// <summary>Shows the "transmission en cours" panel after QTE success — the player listens to the voice clip.</summary>
     public void ShowTransmission()
     {
         if (decodedPanel != null)
@@ -126,7 +117,6 @@ public class RadioFrequencyVisualizer : MonoBehaviour
             decodedText.text = "TRANSMISSION EN COURS...\nÉcoute et mémorise le message.";
     }
 
-    /// <summary>Shows the decoded clue panel with the station's clue text.</summary>
     public void ShowDecoded(string clue)
     {
         if (decodedPanel != null)

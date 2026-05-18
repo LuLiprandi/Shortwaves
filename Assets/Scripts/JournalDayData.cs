@@ -1,9 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// ScriptableObject — toute la narration et les données de décodage d'un jour.
-/// Créer via : clic droit > Create > Shortwaves > Journal Day Data
-/// </summary>
 [CreateAssetMenu(fileName = "JournalDay01", menuName = "Shortwaves/Journal Day Data")]
 public class JournalDayData : ScriptableObject
 {
@@ -47,9 +43,6 @@ public class JournalDayData : ScriptableObject
     [TextArea(2, 6)]
     public string AnomalyNote = "";
 
-    // ── Parsed accessors ─────────────────────────────────────────────────────
-
-    /// <summary>Returns CodeSequenceRaw parsed as an int array. Invalid tokens are skipped.</summary>
     public int[] CodeSequence
     {
         get
@@ -64,7 +57,6 @@ public class JournalDayData : ScriptableObject
         }
     }
 
-    /// <summary>Returns HiddenSlotIndicesRaw parsed as an int array. Invalid tokens are skipped.</summary>
     public int[] HiddenSlotIndices
     {
         get
@@ -78,18 +70,4 @@ public class JournalDayData : ScriptableObject
             return list.ToArray();
         }
     }
-
-#if UNITY_EDITOR
-    private void OnValidate()
-    {
-        if (string.IsNullOrWhiteSpace(PreAnomalyThoughts))
-            Debug.LogWarning($"[JournalDayData] Jour {DayNumber} — PreAnomalyThoughts est vide.", this);
-
-        if (string.IsNullOrWhiteSpace(PostAnomalyThoughts))
-            Debug.LogWarning($"[JournalDayData] Jour {DayNumber} — PostAnomalyThoughts est vide.", this);
-
-        if (DayNumber <= 3 && string.IsNullOrWhiteSpace(CodeSequenceRaw))
-            Debug.LogWarning($"[JournalDayData] Jour {DayNumber} — CodeSequenceRaw est vide alors que le décodage est prévu.", this);
-    }
-#endif
 }

@@ -2,9 +2,6 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 
-/// <summary>
-/// Controls the main menu: frequency bar animation, panel toggling, and navigation.
-/// </summary>
 public class MainMenuController : MonoBehaviour
 {
     [Header("Références UI")]
@@ -84,10 +81,8 @@ public class MainMenuController : MonoBehaviour
 
     // ── Boutons ──────────────────────────────────────────────────────────────
 
-    /// <summary>Charge la scène de jeu.</summary>
     public void OnCommencer() => SceneManager.LoadScene(gameSceneName);
 
-    /// <summary>Bascule le panneau Options.</summary>
     public void OnOptions()
     {
         bool open = optionsPanel != null && optionsPanel.activeSelf;
@@ -95,7 +90,6 @@ public class MainMenuController : MonoBehaviour
         sauvegardePanel?.SetActive(false);
     }
 
-    /// <summary>Bascule le panneau Sauvegarde.</summary>
     public void OnSauvegarde()
     {
         bool open = sauvegardePanel != null && sauvegardePanel.activeSelf;
@@ -103,7 +97,6 @@ public class MainMenuController : MonoBehaviour
         optionsPanel?.SetActive(false);
     }
 
-    /// <summary>Quitte l'application.</summary>
     public void OnQuitter()
     {
 #if UNITY_EDITOR

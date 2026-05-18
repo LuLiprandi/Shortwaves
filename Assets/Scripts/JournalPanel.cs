@@ -142,23 +142,14 @@ public class JournalPanel : MonoBehaviour
 
     // ── Day change / reset ────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Called when GameStateManager advances to the next day.
-    /// Wipes the decoder progress for the new day so the player starts fresh.
-    /// </summary>
     private void HandleDayChanged(int newDay)
     {
         ClearDecoderProgress(newDay);
 
-        // Also reset in-memory state so the journal rebuilds cleanly when opened.
         radioUnlocked    = false;
         decodingComplete = false;
     }
 
-    /// <summary>
-    /// Clears all saved decoder progress (letter inputs and completion flag) for the given day.
-    /// Call on new game start or day transition.
-    /// </summary>
     public void ClearDecoderProgress(int day)
     {
         PlayerPrefs.DeleteKey(PrefLettersKey + day);
@@ -168,11 +159,6 @@ public class JournalPanel : MonoBehaviour
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Opens the journal for a given day.
-    /// CodeSequence and HiddenSlotIndices come from JournalDayData.
-    /// Mode comes from JournalConfig.
-    /// </summary>
     public void Show(int day, string thoughts, int[] codeSequence, int[] hiddenSlotIndices, string decodedSolution)
     {
         currentDay = day;
@@ -192,18 +178,12 @@ public class JournalPanel : MonoBehaviour
         gameObject.SetActive(true);
     }
 
-    /// <summary>Saves decoder state for the current day and hides the panel.</summary>
     public void Hide()
     {
         SaveDecoderState();
         gameObject.SetActive(false);
     }
 
-    /// <summary>
-    /// Ouvre le journal uniquement sur l'onglet "pensées" avec un texte fourni en paramètre.
-    /// Utilisé par Day2AnomalySequencer pour afficher la pensée post-choix sans passer par JournalDayData.
-    /// Le décodeur est masqué.
-    /// </summary>
     public void ShowWithThoughts(int day, string thoughts)
     {
         currentDay = day;
@@ -217,10 +197,6 @@ public class JournalPanel : MonoBehaviour
         gameObject.SetActive(true);
     }
 
-    /// <summary>
-    /// Same as Show() but opens directly on the decoder tab.
-    /// Called automatically after the radio voice clip ends.
-    /// </summary>
     public void ShowOnDecoderTab(int day, string thoughts, int[] codeSequence, int[] hiddenSlotIndices, string decodedSolution)
     {
         currentDay = day;
@@ -240,16 +216,8 @@ public class JournalPanel : MonoBehaviour
         gameObject.SetActive(true);
     }
 
-    /// <summary>Updates thoughts text while the panel is already open.</summary>
     public void UpdateThoughts(string t) => thoughtsTmp.text = t;
 
-    /// <summary>
-    /// Switches the specified slots to "self-fill" mode:
-    /// the static code text is replaced by an editable numeric field so the player
-    /// can write down the number they heard on the radio, and the letter field is
-    /// (re-)enabled so they can also translate it.
-    /// Called by JournalManager after the radio voice clip ends.
-    /// </summary>
     public void HideSlots(int[] indices)
     {
         if (slots == null || indices == null) return;
@@ -340,10 +308,6 @@ public class JournalPanel : MonoBehaviour
         sd.codeInputField = field;
     }
 
-    /// <summary>
-    /// Called by RadioSystem after a successful QTE for the current day.
-    /// Unlocks the decoder: reveals all codes in Guided mode, enables letter fields.
-    /// </summary>
     public void UnlockDecoder()
     {
         radioUnlocked = true;
@@ -362,7 +326,6 @@ public class JournalPanel : MonoBehaviour
         SetFocus(FindFirstInputSlot());
     }
 
-    /// <summary>Called by RadioSystem when the player identifies a specific slot code via radio (Partial / Full).</summary>
     public void ResolveSlotCode(int slotIndex)
     {
         if (slots == null || slotIndex < 0 || slotIndex >= slots.Length) return;
@@ -837,7 +800,6 @@ public class JournalPanel : MonoBehaviour
         slots[index].letterInput = slots[index].letterField.text;
     }
 
-    /// <summary>Called by the Validate button.</summary>
     private void ValidateDecoding()
     {
         if (slots == null || decodingComplete) return;
@@ -936,10 +898,6 @@ public class JournalPanel : MonoBehaviour
 
     // ── Key overlay ───────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Builds a compact floating panel anchored to the top-right of the decoder tab.
-    /// Parent must be the decoderContent RectTransform so it stays inside the page.
-    /// </summary>
     private GameObject BuildKeyOverlay(Transform parent)
     {
         const float PanelW = 220f;

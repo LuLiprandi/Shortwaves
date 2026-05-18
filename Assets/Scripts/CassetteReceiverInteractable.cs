@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class CassetteReceiverInteractable : MonoBehaviour, IInteractable
 {
-    [SerializeField] private string promptWithCassette = "Appuyer sur [E] pour insérer la cassette";
+    [SerializeField] private string promptWithCassette = "Appuyer sur [E] pour insï¿½rer la cassette";
     [SerializeField] private string promptWithoutCassette = "";
     [SerializeField] private CutsceneController cutsceneController;
 
@@ -17,7 +17,6 @@ public class CassetteReceiverInteractable : MonoBehaviour, IInteractable
         }
     }
 
-    /// <summary>Inserts the held cassette and triggers the intro cutscene. Blocks further interaction.</summary>
     public void Interact()
     {
         if (cassetteInserted || !HeldItemSystem.Instance.HasItem) return;

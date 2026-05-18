@@ -4,12 +4,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Singleton — superpose un panneau noir sur l'écran pour les fondus.
-/// Démarre automatiquement en noir, affiche le titre du jour courant, puis fait un fondu de retour.
-/// Usage : ScreenFader.Instance.FadeOut(duration, onComplete) / FadeIn(duration, onComplete)
-/// Pour les transitions de jour : ScreenFader.Instance.ShowDayTitle(day, displayDuration)
-/// </summary>
 public class ScreenFader : MonoBehaviour
 {
     public static ScreenFader Instance { get; private set; }
@@ -39,10 +33,6 @@ public class ScreenFader : MonoBehaviour
     private Coroutine titleCoroutine;
     private Coroutine startupCoroutine;
 
-    /// <summary>
-    /// Vrai une fois que la séquence de démarrage (noir → titre → fondu) est terminée.
-    /// Permet aux autres systèmes d'attendre avant de déclencher leurs propres fondus.
-    /// </summary>
     public bool IsStartupComplete { get; private set; }
 
     private const float DayTitleFadeDuration = 0.6f;
@@ -67,21 +57,18 @@ public class ScreenFader : MonoBehaviour
 
     // ── API publique ──────────────────────────────────────────────────────────
 
-    /// <summary>Fondu vers le noir (alpha 0 → 1).</summary>
     public void FadeOut(float duration = -1f, Action onComplete = null)
     {
         StopActiveCoroutines();
         fadeCoroutine = StartCoroutine(FadeRoutine(0f, 1f, duration < 0f ? defaultDuration : duration, onComplete));
     }
 
-    /// <summary>Fondu depuis le noir (alpha 1 → 0).</summary>
     public void FadeIn(float duration = -1f, Action onComplete = null)
     {
         StopActiveCoroutines();
         fadeCoroutine = StartCoroutine(FadeRoutine(1f, 0f, duration < 0f ? defaultDuration : duration, onComplete));
     }
 
-    /// <summary>Force l'écran au noir instantanément sans animation.</summary>
     public void SetBlack()
     {
         StopActiveCoroutines();
@@ -89,7 +76,6 @@ public class ScreenFader : MonoBehaviour
         canvasGroup.blocksRaycasts = true;
     }
 
-    /// <summary>Force l'écran transparent instantanément sans animation.</summary>
     public void SetClear()
     {
         StopActiveCoroutines();
@@ -97,7 +83,6 @@ public class ScreenFader : MonoBehaviour
         canvasGroup.blocksRaycasts = false;
     }
 
-    /// <summary>Fondu vers le blanc (alpha 0 → 1 sur un overlay blanc).</summary>
     public void FadeToWhite(float duration = -1f, Action onComplete = null)
     {
         StopActiveCoroutines();
@@ -109,18 +94,12 @@ public class ScreenFader : MonoBehaviour
         }));
     }
 
-    /// <summary>Change la couleur du panneau de fondu (noir par défaut).</summary>
     public void SetPanelColor(Color color)
     {
         if (fadePanel != null)
             fadePanel.color = color;
     }
 
-    /// <summary>
-    /// Affiche "Jour N" centré sur le fond noir pendant <paramref name="displayDuration"/> secondes.
-    /// Le texte apparaît et disparaît en fondu. Doit être appelé pendant que l'écran est déjà noir.
-    /// <paramref name="onComplete"/> est invoqué une fois que le texte a fini de disparaître.
-    /// </summary>
     public void ShowDayTitle(int day, float displayDuration = 2f, Action onComplete = null)
     {
         if (titleCoroutine != null) StopCoroutine(titleCoroutine);
@@ -129,9 +108,6 @@ public class ScreenFader : MonoBehaviour
 
     // ── Interne ───────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Arrête les coroutines de fondu et de startup sans toucher à la coroutine de titre.
-    /// </summary>
     private void StopActiveCoroutines()
     {
         if (startupCoroutine != null)
@@ -147,9 +123,6 @@ public class ScreenFader : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Séquence automatique au démarrage : noir → pause → titre du jour → fondu de retour.
-    /// </summary>
     private IEnumerator StartupSequence()
     {
         // Attendre un frame que GameStateManager soit initialisé

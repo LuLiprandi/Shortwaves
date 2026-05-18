@@ -6,17 +6,6 @@ using UnityEngine.UI;
 
 namespace Shortwaves
 {
-    /// <summary>
-    /// Orchestre la séquence anomalie du Jour 2 :
-    ///   1. Radio coupée — le joueur reprend ses mouvements librement.
-    ///   2. Pas dans les conduits (audio positionnel qui se déplace quand le joueur s'approche).
-    ///   3. Toquements à la porte → prompt de choix (Ouvrir / Ignorer).
-    ///   4a. Ouvrir : grincement → blizzard → lampe éteinte → porte refermée → rallumage lampe → parasite radio.
-    ///   4b. Ignorer : coups croissants (volume + shake) → bang final → silence absolu → parasite radio.
-    ///   5. Journal s'ouvre avec la pensée post-choix.
-    ///
-    /// Appeler TriggerSequence() depuis JournalManager après la validation du décodage.
-    /// </summary>
     public class Day2AnomalySequencer : MonoBehaviour
     {
         [Header("Data")]
@@ -113,10 +102,6 @@ namespace Shortwaves
 
         // ── API publique ──────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Déclenche la séquence complète du Jour 2.
-        /// Idempotent — ne s'exécute qu'une seule fois par session.
-        /// </summary>
         public void TriggerSequence()
         {
             if (sequencePlayed || data == null) return;
@@ -174,6 +159,12 @@ namespace Shortwaves
                 : data.PostAnomalyThoughts_Ignored;
 
             JournalManager.Instance?.OpenWithThoughts(thoughts);
+
+            // Attendre que le joueur ferme le carnet, puis afficher l'indication
+            yield return new WaitUntil(() =>
+                JournalManager.Instance == null || !JournalManager.Instance.IsOpen);
+
+            HintDisplay.Instance?.ShowHint("Allez vous coucher");
         }
 
         // ── Phase 1 : Pas dans les conduits ──────────────────────────────────
@@ -262,6 +253,14 @@ namespace Shortwaves
 
             // Afficher le prompt de choix et attendre la décision
             choiceMade = false;
+
+            // Stopper le regard forcé pendant le choix pour que la caméra soit statique
+            if (lookAtDoorCoroutine != null)
+            {
+                StopCoroutine(lookAtDoorCoroutine);
+                lookAtDoorCoroutine = null;
+            }
+
             ShowChoiceUI();
             yield return new WaitUntil(() => choiceMade);
 
@@ -366,11 +365,6 @@ namespace Shortwaves
 
         // ── Utilitaires séquence ──────────────────────────────────────────────
 
-        /// <summary>
-        /// Si le joueur est plus loin que <see cref="doorApproachDistance"/> de <see cref="doorApproachPoint"/>,
-        /// le fait marcher vers la porte et pivoter progressivement dans sa direction.
-        /// Se termine dès que le joueur est assez proche, ou immédiatement si doorApproachPoint n'est pas assigné.
-        /// </summary>
         private IEnumerator WalkToDoor()
         {
             if (doorApproachPoint == null || playerTransform == null) yield break;
@@ -434,7 +428,6 @@ namespace Shortwaves
             }
         }
 
-        /// <summary>Secoue cameraShakeTarget pendant <paramref name="duration"/> secondes.</summary>
         private IEnumerator ShakeCamera(float duration, float amplitude)
         {
             if (cameraShakeTarget == null) { yield return new WaitForSeconds(duration); yield break; }
@@ -460,10 +453,6 @@ namespace Shortwaves
                 ambientSource.transform.position = target.position;
         }
 
-        /// <summary>
-        /// Pivote progressivement le corps du joueur et la caméra vers <paramref name="target"/>.
-        /// Tourne en boucle jusqu'à être stoppée explicitement.
-        /// </summary>
         private IEnumerator LookAtDoorRoutine(Transform target)
         {
             if (playerTransform == null || playerController == null || target == null)
@@ -498,10 +487,6 @@ namespace Shortwaves
             }
         }
 
-        /// <summary>
-        /// Active/désactive le mouvement et les interactions du joueur.
-        /// <paramref name="lockInteractions"/> permet de garder les interactions actives pendant la phase des pas.
-        /// </summary>
         private void SetPlayerMovement(bool canMove, bool lockInteractions)
         {
             if (playerController != null)

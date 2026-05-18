@@ -74,13 +74,8 @@ public class RotatableKnob : MonoBehaviour
         }
     }
 
-    /// <summary>Returns the knob's current rotation as a normalized value between 0 and 1.</summary>
     public float NormalizedValue => maxRotation > 0f ? currentRotation / maxRotation : 0f;
 
-    /// <summary>
-    /// Forces the knob to a specific normalized position [0-1] from an external system.
-    /// Skips sound and player-focus checks — intended for scripted sequences.
-    /// </summary>
     public void SetNormalizedValue(float normalized)
     {
         float target = Mathf.Clamp01(normalized) * maxRotation;

@@ -3,10 +3,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// Builds and manages the Options panel UI entirely at runtime.
-/// Attach to the OptionsPanel GameObject in the MainMenu scene.
-/// </summary>
 public class OptionsManager : MonoBehaviour
 {
     private const string KeyMasterVolume = "opt_master_volume";
@@ -65,7 +61,6 @@ public class OptionsManager : MonoBehaviour
 
     // ── Public API ───────────────────────────────────────────────────────────
 
-    /// <summary>Applies and persists all current settings.</summary>
     public void Apply()
     {
         AudioListener.volume = _masterSlider.value;
@@ -89,7 +84,6 @@ public class OptionsManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    /// <summary>Returns the saved mouse sensitivity so other systems can read it.</summary>
     public static float MouseSensitivity => PlayerPrefs.GetFloat(KeySensitivity, 1f);
 
     // ── Settings Load ────────────────────────────────────────────────────────

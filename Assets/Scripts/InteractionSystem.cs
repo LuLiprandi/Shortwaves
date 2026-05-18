@@ -98,7 +98,6 @@ public class InteractionSystem : MonoBehaviour
         }
     }
 
-    /// <summary>Shows or hides the interaction prompt based on whether the message is non-empty.</summary>
     private void UpdatePrompt(string message)
     {
         if (interactionPrompt == null) return;

@@ -24,7 +24,6 @@ public class HeldItemSystem : MonoBehaviour
         Instance = this;
     }
 
-    /// <summary>Picks up an item and displays its 3D model in the hold anchor.</summary>
     public void PickUp(GameObject itemModel)
     {
         if (HasItem) return;
@@ -36,7 +35,6 @@ public class HeldItemSystem : MonoBehaviour
         SetLayerRecursive(currentHeldItem, LayerMask.NameToLayer(HELD_ITEM_LAYER));
     }
 
-    /// <summary>Removes the currently held item from hand.</summary>
     public void Drop()
     {
         if (!HasItem) return;

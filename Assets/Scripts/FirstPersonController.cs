@@ -44,15 +44,12 @@ public class FirstPersonController : MonoBehaviour
     public bool CanLook { get; set; } = true;
     public bool IsSeated => isSeated;
 
-    /// <summary>Accès direct au CharacterController pour les déplacements scriptés (cinématiques).</summary>
     public CharacterController CharacterController => characterController;
 
-    /// <summary>Transform de la caméra FPS.</summary>
     public Transform PlayerCamera => playerCamera;
 
     private void Start()
     {
-        // Écrase la valeur Inspector si l'utilisateur a sauvegardé une sensibilité dans les options
         if (PlayerPrefs.HasKey(KeySensitivity))
             mouseSensitivity = PlayerPrefs.GetFloat(KeySensitivity);
     }
@@ -172,7 +169,6 @@ public class FirstPersonController : MonoBehaviour
         );
     }
 
-    /// <summary>Activates or deactivates seated camera constraints and FOV zoom.</summary>
     public void SetSeatedMode(bool seated)
     {
         isSeated = seated;

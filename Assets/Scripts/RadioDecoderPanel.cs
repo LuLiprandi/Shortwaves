@@ -5,11 +5,6 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// Interactive digit-slot decoder panel. After QTE success, the player listens
-/// to the voice clip and enters the corresponding numeric code into the slots.
-/// Slots are built dynamically from the SolutionCode format "8/5/11".
-/// </summary>
 public class RadioDecoderPanel : MonoBehaviour
 {
     [Header("Références UI existantes")]
@@ -42,14 +37,9 @@ public class RadioDecoderPanel : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    /// <summary>Initializes and shows the decoder with the given solution code. Format: "8/5/11".</summary>
     public void Initialize(string solutionCode)
     {
-        if (string.IsNullOrEmpty(solutionCode))
-        {
-            Debug.LogWarning("[RadioDecoderPanel] SolutionCode vide — assigne la valeur dans RadioStationData.SolutionCode.");
-            return;
-        }
+        if (string.IsNullOrEmpty(solutionCode)) return;
 
         solutionParts = solutionCode.Split(SolutionSeparator);
         playerInput   = new string[solutionParts.Length];
@@ -67,7 +57,6 @@ public class RadioDecoderPanel : MonoBehaviour
         gameObject.SetActive(true);
     }
 
-    /// <summary>Hides the panel and resets state.</summary>
     public void Hide()
     {
         isActive = false;

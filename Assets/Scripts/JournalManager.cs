@@ -2,10 +2,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 
-/// <summary>
-/// Singleton that owns the journal panel lifecycle.
-/// Press J to open/close. Listens to GameStateManager.OnAnomalyTriggered to refresh thoughts live.
-/// </summary>
 public class JournalManager : MonoBehaviour
 {
     public static JournalManager Instance { get; private set; }
@@ -14,11 +10,11 @@ public class JournalManager : MonoBehaviour
     [SerializeField] private JournalDayData[] days;
 
     [Header("References")]
-    [SerializeField] private JournalPanel            journalPanel;
-    [SerializeField] private AnomalySequencer        anomalySequencer;
-    [SerializeField] private Shortwaves.Day2AnomalySequencer day2AnomalySequencer;
-    [SerializeField] private Shortwaves.Day3AnomalySequencer day3AnomalySequencer;
-    [SerializeField] private Shortwaves.Day4EndingSequencer  day4EndingSequencer;
+    [SerializeField] private JournalPanel                       journalPanel;
+    [SerializeField] private AnomalySequencer                   anomalySequencer;
+    [SerializeField] private Shortwaves.Day2AnomalySequencer    day2AnomalySequencer;
+    [SerializeField] private Shortwaves.Day3AnomalySequencer    day3AnomalySequencer;
+    [SerializeField] private Shortwaves.Day4EndingSequencer     day4EndingSequencer;
 
     [Header("Jour 3 — données narratives (branching J2)")]
     [Tooltip("ScriptableObject Day3Data pour les pensées du matin branching selon le choix J2.")]
@@ -29,8 +25,6 @@ public class JournalManager : MonoBehaviour
     private bool isOpen;
 
     public bool IsOpen => isOpen;
-
-    // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     private void Awake()
     {
@@ -53,14 +47,10 @@ public class JournalManager : MonoBehaviour
         {
             journalPanel.OnMessageDecoded += HandleMessageDecoded;
 
-            // If persistence is disabled (dev mode) or CurrentDay is 1 with no saved anomaly,
-            // wipe any stale decoder progress so the player always starts clean.
             if (!GameStateManager.Instance.IsPostAnomaly)
                 journalPanel.ClearDecoderProgress(GameStateManager.Instance.CurrentDay);
         }
 
-        // Si on démarre directement au Jour 4 (slot de test ou persistance), lancer la fin
-        // après que ScreenFader ait terminé sa séquence de démarrage.
         if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentDay == 4)
             StartCoroutine(WaitForStartupThenBeginDay4());
     }
@@ -92,37 +82,22 @@ public class JournalManager : MonoBehaviour
             Toggle();
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
-
     public void Toggle() { if (isOpen) Close(); else Open(); }
 
-    /// <summary>Exposes the journal panel for external systems (e.g., RadioSystem).</summary>
     public JournalPanel GetJournalPanel() => journalPanel;
 
-    /// <summary>
-    /// Returns the voice clip configured for the current day in JournalDayData.
-    /// Returns null if no clip is set, so the caller can fall back to RadioStationData.VoiceClip.
-    /// </summary>
     public AudioClip GetCurrentDayVoiceClip()
     {
         try { return GetCurrentData()?.RadioVoiceClip; }
         catch (UnityEngine.UnassignedReferenceException) { return null; }
     }
 
-    /// <summary>
-    /// Returns the subtitles configured for the current day in JournalDayData.
-    /// Returns an empty array if none are set.
-    /// </summary>
     public SubtitleEntry[] GetCurrentDaySubtitles()
     {
         try { return GetCurrentData()?.RadioSubtitles ?? System.Array.Empty<SubtitleEntry>(); }
         catch (UnityEngine.UnassignedReferenceException) { return System.Array.Empty<SubtitleEntry>(); }
     }
 
-    /// <summary>
-    /// Opens the journal directly on the decoder tab after the radio clip ends.
-    /// Locks player input the same way as Open().
-    /// </summary>
     public void OpenOnDecoderTab()
     {
         if (isOpen) return;
@@ -131,27 +106,25 @@ public class JournalManager : MonoBehaviour
         var data     = GetCurrentData();
         var thoughts = GetMorningThoughts();
 
-        int[]  codeSeq         = data?.CodeSequence        ?? System.Array.Empty<int>();
-        int[]  hiddenIndices   = data?.HiddenSlotIndices    ?? System.Array.Empty<int>();
-        string decodedSolution = data?.OfficialMessageDecoded ?? "";
+        int[]  codeSeq         = data?.CodeSequence           ?? System.Array.Empty<int>();
+        int[]  hiddenIndices   = data?.HiddenSlotIndices       ?? System.Array.Empty<int>();
+        string decodedSolution = data?.OfficialMessageDecoded  ?? "";
 
         journalPanel.ShowOnDecoderTab(GameStateManager.Instance.CurrentDay, thoughts,
             codeSeq, hiddenIndices, decodedSolution);
 
-        // Hide the specified slots now that the message has been delivered via radio
         if (hiddenIndices != null && hiddenIndices.Length > 0)
             journalPanel.HideSlots(hiddenIndices);
 
         GameStateManager.Instance.OpenBlockingUI();
 
-        if (playerController  != null) playerController.CanMove  = false;
+        if (playerController  != null) { playerController.CanMove = false; playerController.CanLook = false; }
         if (interactionSystem != null) interactionSystem.enabled  = false;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
     }
 
-    /// <summary>Opens the journal and locks player input.</summary>
     public void Open()
     {
         if (isOpen) return;
@@ -160,23 +133,22 @@ public class JournalManager : MonoBehaviour
         var data     = GetCurrentData();
         var thoughts = GetMorningThoughts();
 
-        int[]  codeSeq        = data?.CodeSequence        ?? System.Array.Empty<int>();
-        int[]  hiddenIndices  = data?.HiddenSlotIndices    ?? System.Array.Empty<int>();
-        string decodedSolution = data?.OfficialMessageDecoded ?? "";
+        int[]  codeSeq         = data?.CodeSequence           ?? System.Array.Empty<int>();
+        int[]  hiddenIndices   = data?.HiddenSlotIndices       ?? System.Array.Empty<int>();
+        string decodedSolution = data?.OfficialMessageDecoded  ?? "";
 
         journalPanel.Show(GameStateManager.Instance.CurrentDay, thoughts,
             codeSeq, hiddenIndices, decodedSolution);
 
         GameStateManager.Instance.OpenBlockingUI();
 
-        if (playerController  != null) playerController.CanMove  = false;
+        if (playerController  != null) { playerController.CanMove = false; playerController.CanLook = false; }
         if (interactionSystem != null) interactionSystem.enabled  = false;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
     }
 
-    /// <summary>Closes the journal and restores player input.</summary>
     public void Close()
     {
         if (!isOpen) return;
@@ -185,8 +157,6 @@ public class JournalManager : MonoBehaviour
         journalPanel.Hide();
         GameStateManager.Instance.CloseBlockingUI();
 
-        // Au Jour 4 le Day4EndingSequencer reprend le contrôle du joueur juste après.
-        // On ne libère pas le mouvement ici pour éviter un frame où le joueur peut bouger.
         bool isDay4 = GameStateManager.Instance != null && GameStateManager.Instance.CurrentDay == 4;
         if (!isDay4)
         {
@@ -202,10 +172,6 @@ public class JournalManager : MonoBehaviour
         Cursor.visible   = false;
     }
 
-    /// <summary>
-    /// Ouvre le journal sur l'onglet "pensées" avec un texte libre.
-    /// Utilisé par Day2AnomalySequencer pour afficher la pensée post-choix.
-    /// </summary>
     public void OpenWithThoughts(string thoughts)
     {
         if (isOpen) return;
@@ -215,17 +181,13 @@ public class JournalManager : MonoBehaviour
 
         GameStateManager.Instance.OpenBlockingUI();
 
-        if (playerController  != null) playerController.CanMove  = false;
+        if (playerController  != null) { playerController.CanMove = false; playerController.CanLook = false; }
         if (interactionSystem != null) interactionSystem.enabled  = false;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
     }
 
-    /// <summary>
-    /// Ouvre le journal sur les pensées post-anomalie du jour en cours (PostAnomalyThoughts).
-    /// Appelé automatiquement après la fermeture de l'overlay anomalie.
-    /// </summary>
     public void OpenOnPostAnomalyThoughts()
     {
         if (isOpen) return;
@@ -235,8 +197,6 @@ public class JournalManager : MonoBehaviour
         OpenWithThoughts(thoughts);
     }
 
-    // ── Internal ──────────────────────────────────────────────────────────────
-
     private void HandleAnomalyTriggered()
     {
         if (!isOpen) return;
@@ -244,39 +204,21 @@ public class JournalManager : MonoBehaviour
         if (data != null) journalPanel.UpdateThoughts(data.PostAnomalyThoughts);
     }
 
-    /// <summary>
-    /// Réabonnement aux événements de jour.
-    /// BeginDay4() est déclenché par Day3AnomalySequencer après le titre "Jour 4",
-    /// ou directement depuis Start() si la session démarre déjà au Jour 4.
-    /// </summary>
     private void HandleDayChanged(int newDay) { }
 
-    /// <summary>
-    /// Attend la fin de la séquence de démarrage du ScreenFader (noir → titre → fondu),
-    /// puis déclenche BeginDay4() pour ne pas interférer avec le fondu initial.
-    /// skipFadeIn = true car la scène est déjà visible après la startup du ScreenFader.
-    /// </summary>
-    private System.Collections.IEnumerator WaitForStartupThenBeginDay4()
+    private IEnumerator WaitForStartupThenBeginDay4()
     {
-        Debug.Log("[Day4] WaitForStartupThenBeginDay4 started");
         yield return new WaitUntil(() =>
             ScreenFader.Instance == null || ScreenFader.Instance.IsStartupComplete);
 
-        Debug.Log($"[Day4] Startup complete, calling BeginDay4(skipFadeIn:true). day4EndingSequencer={day4EndingSequencer}");
         day4EndingSequencer?.BeginDay4(skipFadeIn: true);
     }
 
-    /// <summary>Called when the player validates the correct decoded message in the journal.</summary>
     private void HandleMessageDecoded()
     {
-        // Ne pas déclencher TriggerAnomaly() ici : l'AnomalySequencer s'en charge en fin de séquence,
-        // afin que IsPostAnomaly (et donc l'accès au lit) ne soit activé qu'après l'anomalie complète.
-
-        // Masquer le visualiseur fréquence radio immédiatement
         var radioSystem = FindFirstObjectByType<RadioSystem>();
         radioSystem?.HideFrequencyVisualizer();
 
-        // Close the journal first, then trigger the day-appropriate anomaly sequence
         Close();
 
         int day = GameStateManager.Instance.CurrentDay;
@@ -295,10 +237,6 @@ public class JournalManager : MonoBehaviour
         return days[Mathf.Clamp(idx, 0, days.Length - 1)];
     }
 
-    /// <summary>
-    /// Retourne les pensées du matin pour le jour en cours.
-    /// Au Jour 3, les pensées sont branching selon le choix de la porte au Jour 2.
-    /// </summary>
     private string GetMorningThoughts()
     {
         int day = GameStateManager.Instance.CurrentDay;

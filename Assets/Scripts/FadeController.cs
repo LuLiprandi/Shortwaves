@@ -35,19 +35,16 @@ public class FadeController : MonoBehaviour
             fadeImage.color = new Color(0f, 0f, 0f, OPAQUE);
     }
 
-    /// <summary>Fades from black to transparent.</summary>
     public void FadeIn(Action onComplete = null)
     {
         StartCoroutine(FadeRoutine(OPAQUE, TRANSPARENT, defaultFadeDuration, onComplete));
     }
 
-    /// <summary>Fades from transparent to black.</summary>
     public void FadeOut(Action onComplete = null)
     {
         StartCoroutine(FadeRoutine(TRANSPARENT, OPAQUE, defaultFadeDuration, onComplete));
     }
 
-    /// <summary>Fades out, holds, then fades in. Useful for day transitions.</summary>
     public void FadeOutAndIn(float holdDuration = 1f, Action onHoldComplete = null, Action onComplete = null)
     {
         StartCoroutine(FadeOutAndInRoutine(holdDuration, onHoldComplete, onComplete));

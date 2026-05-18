@@ -2,16 +2,9 @@ using UnityEngine;
 
 namespace Shortwaves
 {
-    /// <summary>
-    /// ScriptableObject — données narratives, audio et timing du Jour 4 (Fin du jeu).
-    /// Les deux fins (A : porte ouverte / B : porte ignorée) sont définies ici.
-    /// Créer via : clic droit > Create > Shortwaves > Day 4 Data
-    /// </summary>
     [CreateAssetMenu(fileName = "Day4Data", menuName = "Shortwaves/Day 4 Data")]
     public class Day4Data : ScriptableObject
     {
-        // ── Journal — pensées du matin ────────────────────────────────────────
-
         [Header("Journal — Fin A (porte OUVERTE au Jour 2)")]
         [TextArea(8, 20)]
         public string Thoughts_FinA =
@@ -37,8 +30,6 @@ namespace Shortwaves
             "la porte principale se déclencher de l'extérieur. Ils reviennent me chercher. L'expérience " +
             "est terminée... mais je sais qu'une partie de moi est restée bloquée dans ce silence.";
 
-        // ── Fin A — cinématique ───────────────────────────────────────────────
-
         [Header("Fin A — cinématique")]
 
         [Tooltip("Image de fin Fin A (l'opérateur de dos dans la neige). Accepte une Texture2D ou un Sprite.")]
@@ -53,8 +44,6 @@ namespace Shortwaves
         [Tooltip("Son sourd de la porte blindée qui se referme seule (Fin A).")]
         public AudioClip SfxDoorClose;
 
-        // ── Fin B — cinématique ───────────────────────────────────────────────
-
         [Header("Fin B — cinématique")]
 
         [Tooltip("Image de fin Fin B (l'opérateur de dos dans la salle d'hôpital psychiatrique). Accepte une Texture2D ou un Sprite.")]
@@ -65,8 +54,6 @@ namespace Shortwaves
 
         [Tooltip("Son de l'alarme industrielle retentissant dans le bunker (Fin B).")]
         public AudioClip SfxAlarm;
-
-        // ── Timing commun ─────────────────────────────────────────────────────
 
         [Header("Timing (secondes)")]
 
@@ -85,8 +72,6 @@ namespace Shortwaves
         [Tooltip("Durée du fondu au noir avant le générique.")]
         public float FadeToBlackBeforeCredits = 2f;
 
-        // ── Fin A — timing spécifique ─────────────────────────────────────────
-
         [Header("Fin A — timing spécifique (secondes)")]
 
         [Tooltip("Délai avant que la porte puisse être activée (Fin A).")]
@@ -97,8 +82,6 @@ namespace Shortwaves
 
         [Tooltip("Durée du blanc écran avant l'image de fin (Fin A).")]
         public float FinA_WhiteHoldDuration = 1.5f;
-
-        // ── Fin B — timing spécifique ─────────────────────────────────────────
 
         [Header("Fin B — timing spécifique (secondes)")]
 
@@ -117,10 +100,10 @@ namespace Shortwaves
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            FadeDuration                = Mathf.Max(0.5f, FadeDuration);
-            EndingImageFadeInDuration   = Mathf.Max(0.5f, EndingImageFadeInDuration);
-            EndingImageHoldDuration     = Mathf.Max(1f,   EndingImageHoldDuration);
-            FadeToBlackBeforeCredits    = Mathf.Max(0.5f, FadeToBlackBeforeCredits);
+            FadeDuration              = Mathf.Max(0.5f, FadeDuration);
+            EndingImageFadeInDuration = Mathf.Max(0.5f, EndingImageFadeInDuration);
+            EndingImageHoldDuration   = Mathf.Max(1f,   EndingImageHoldDuration);
+            FadeToBlackBeforeCredits  = Mathf.Max(0.5f, FadeToBlackBeforeCredits);
         }
 #endif
     }

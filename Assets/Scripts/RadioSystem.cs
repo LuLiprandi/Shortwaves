@@ -4,7 +4,6 @@ using UnityEngine.InputSystem;
 
 public enum RadioState { Idle, Tuning, QTE, Decoded }
 
-/// <summary>Main radio controller: maps knob rotation to frequency, detects stations, and drives the QTE.</summary>
 public class RadioSystem : MonoBehaviour
 {
     [Header("Configuration")]
@@ -37,10 +36,6 @@ public class RadioSystem : MonoBehaviour
     public bool IsNearStation { get; private set; }
 
     public event Action<RadioStationData> OnStationDecoded;
-
-    /// <summary>
-    /// Fired when the anomaly broadcast sequence completes (voice clip finished playing).
-    /// </summary>
     public event Action OnAnomalyBroadcastComplete;
 
     private bool isActive;
@@ -51,10 +46,6 @@ public class RadioSystem : MonoBehaviour
         ApplyDayStation();
     }
 
-    /// <summary>
-    /// Sélectionne la station correspondant au jour courant depuis stationsPerDay.
-    /// Si stationsPerDay est vide, le tableau stations reste inchangé (rétro-compatibilité).
-    /// </summary>
     private void ApplyDayStation()
     {
         if (stationsPerDay == null || stationsPerDay.Length == 0) return;
@@ -68,15 +59,12 @@ public class RadioSystem : MonoBehaviour
             : System.Array.Empty<RadioStationData>();
     }
 
-    /// <summary>Activates or deactivates the radio interaction system.</summary>
     public void SetActive(bool active)
     {
         isActive = active;
 
         if (!active)
         {
-            // Ne pas couper l'audio ni les sous-titres si le clip vocal est en cours de lecture
-            // (état Decoded = le joueur écoute le message radio, le journal peut être ouvert par-dessus)
             if (State != RadioState.Decoded)
             {
                 StopDecoding();
@@ -102,7 +90,6 @@ public class RadioSystem : MonoBehaviour
 
         CurrentFrequency = Mathf.Lerp(frequencyMin, frequencyMax, knob.NormalizedValue);
 
-        // En état Decoded : on garde les barres animées mais on ne fait rien d'autre
         if (State == RadioState.Decoded)
         {
             frequencyVisualizer.UpdateVisualizer(CurrentFrequency, 0f, knob.NormalizedValue);
@@ -185,6 +172,9 @@ public class RadioSystem : MonoBehaviour
         qteGauge.OnSuccess += HandleQTESuccess;
         qteGauge.OnFail += HandleQTEFail;
         frequencyVisualizer.ShowQTEAlert();
+
+        if (focusController != null)
+            focusController.EscapeInterceptor = () => { ExitQTE(); return true; };
     }
 
     private void ExitQTE()
@@ -195,6 +185,9 @@ public class RadioSystem : MonoBehaviour
         qteGauge.OnSuccess -= HandleQTESuccess;
         qteGauge.OnFail -= HandleQTEFail;
         frequencyVisualizer.HideQTEAlert();
+
+        if (focusController != null)
+            focusController.EscapeInterceptor = null;
     }
 
     private void HandleQTESuccess()
@@ -203,18 +196,11 @@ public class RadioSystem : MonoBehaviour
         qteGauge.SetVisible(false);
         frequencyVisualizer.HideQTEAlert();
 
-        // Arrêter le son de proximité
         StopDecoding();
 
-        // Clip et sous-titres définis directement sur la RadioStationData du jour
         AudioClip       voiceClip = activeStation?.VoiceClip;
         SubtitleEntry[] subs      = activeStation?.Subtitles ?? System.Array.Empty<SubtitleEntry>();
 
-        Debug.Log($"[RadioSystem] QTE Success — activeStation={activeStation?.name ?? "NULL"} " +
-                  $"voiceClip={voiceClip?.name ?? "NULL"} " +
-                  $"subtitleSystem={subtitleSystem != null} subs={(subs?.Length ?? 0)}");
-
-        // Lancer l'audio et les sous-titres immédiatement
         if (voiceClip != null)
         {
             decodingAudioSource.clip   = voiceClip;
@@ -222,61 +208,36 @@ public class RadioSystem : MonoBehaviour
             decodingAudioSource.volume = 1f;
             decodingAudioSource.Play();
 
-            Debug.Log($"[RadioSystem] Play() appelé — isPlaying={decodingAudioSource.isPlaying}");
-
             if (subtitleSystem != null && subs != null && subs.Length > 0)
                 subtitleSystem.Play(decodingAudioSource, subs);
         }
-        else
-        {
-            Debug.LogWarning("[RadioSystem] HandleQTESuccess : aucun VoiceClip trouvé pour ce jour.");
-        }
 
-        // Ouvrir le décodeur à slots
         decoderPanel?.Initialize(activeStation?.SolutionCode ?? "");
         OnStationDecoded?.Invoke(activeStation);
 
-        // Déverrouille l'onglet décodage du journal
         JournalManager.Instance?.GetJournalPanel()?.UnlockDecoder();
 
-        // Bloquer l'Escape et ouvrir le journal immédiatement — l'audio joue par-dessus
         if (focusController != null)
             focusController.LockEscape = true;
 
         JournalManager.Instance?.OpenOnDecoderTab();
-
-        Debug.Log($"[RadioSystem] Après OpenOnDecoderTab — isPlaying={decodingAudioSource.isPlaying} volume={decodingAudioSource.volume}");
     }
 
-    /// <summary>
-    /// Masque immédiatement le visualiseur de fréquence (appelé dès que le code est validé).
-    /// </summary>
     public void HideFrequencyVisualizer()
     {
         frequencyVisualizer?.SetVisible(false);
     }
 
-    /// <summary>
-    /// Relâche le verrou Escape et sort le focus radio après la séquence anomalie.
-    /// Appelé par AnomalySequencer une fois l'overlay AnomalieJ1 fermé.
-    /// </summary>
     public void ReleaseAfterAnomaly()
     {
         if (focusController != null)
             focusController.LockEscape = false;
 
-        // Reset the inspectable's focused state explicitly before exiting focus.
-        // ExitFocus() may be skipped (e.g. transition already in progress), which
-        // would leave isFocused = true on RadioInspectable and hide the prompt forever.
         radioInspectable?.ResetFocusState();
 
         ExitFocusAndDeactivate();
     }
 
-    /// <summary>
-    /// Désactive définitivement l'interaction avec la radio après la fin d'une anomalie.
-    /// Appelé par les séquenceurs d'anomalie (Jour 1, Jour 2, etc.).
-    /// </summary>
     public void LockInteraction()
     {
         SetActive(false);
@@ -294,10 +255,6 @@ public class RadioSystem : MonoBehaviour
         ExitQTE();
     }
 
-    /// <summary>
-    /// Forces the radio to broadcast an anomaly clip at the given frequency target (normalized 0-1).
-    /// No QTE — plays once then returns the radio to static.
-    /// </summary>
     public void TriggerAnomalyBroadcast(AudioClip voiceClip, float targetNormalized,
         SubtitleEntry[] subtitles = null)
     {
@@ -307,25 +264,20 @@ public class RadioSystem : MonoBehaviour
     private System.Collections.IEnumerator AnomalyBroadcastRoutine(AudioClip voiceClip,
         float targetNormalized, SubtitleEntry[] subtitles)
     {
-        // Force radio state and move the knob to the target frequency
         if (State == RadioState.QTE) ExitQTE();
         State = RadioState.Decoded;
 
         if (knob != null)
             knob.SetNormalizedValue(targetNormalized);
 
-        // Make the visualizer visible for the anomaly even if the player isn't focused on the radio
         frequencyVisualizer?.SetVisible(true);
 
-        // Immediately update the visualizer so the needle snaps to 100 MHz visually
         float targetFrequency = Mathf.Lerp(frequencyMin, frequencyMax, targetNormalized);
         frequencyVisualizer?.UpdateVisualizer(targetFrequency, 0f, targetNormalized);
 
-        // Short buzz before the clear signal
         StopDecoding();
         yield return new WaitForSeconds(0.4f);
 
-        // Play the anomaly voice clip once
         if (voiceClip != null)
         {
             decodingAudioSource.clip   = voiceClip;
@@ -342,21 +294,15 @@ public class RadioSystem : MonoBehaviour
                 subtitleSystem.Stop();
         }
 
-        // Return to static / tuning
         State = RadioState.Tuning;
         StopDecoding();
 
-        // Hide the visualizer again if the radio is not currently active (player not focused)
         if (!isActive)
             frequencyVisualizer?.SetVisible(false);
 
         OnAnomalyBroadcastComplete?.Invoke();
     }
 
-    /// <summary>
-    /// Joue un burst de grésillo radio pendant la durée indiquée puis s'arrête.
-    /// Utilise le ProximityClip de la station active, ou un clip fourni en paramètre.
-    /// </summary>
     public void PlayStaticBurst(float duration, AudioClip overrideClip = null)
     {
         StartCoroutine(StaticBurstRoutine(duration, overrideClip));

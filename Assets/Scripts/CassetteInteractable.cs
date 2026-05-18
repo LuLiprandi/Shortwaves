@@ -14,12 +14,10 @@ public class CassetteInteractable : MonoBehaviour, IInteractable
 
     private void Start()
     {
-        // La cassette n'existe qu'au Jour 1 — au Jour 2+ elle a déjà été utilisée.
         if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentDay > availableUntilDay)
             gameObject.SetActive(false);
     }
 
-    /// <summary>Picks up the cassette and hides the world object.</summary>
     public void Interact()
     {
         if (HeldItemSystem.Instance.HasItem) return;

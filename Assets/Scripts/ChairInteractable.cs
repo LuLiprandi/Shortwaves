@@ -41,7 +41,6 @@ public class ChairInteractable : MonoBehaviour, IInteractable
             StandUp();
     }
 
-    /// <summary>Moves the player to the seated anchor and enables seated mode.</summary>
     public void Interact()
     {
         if (isAnimating || isSitting) return;
@@ -65,15 +64,14 @@ public class ChairInteractable : MonoBehaviour, IInteractable
         playerController.SetSeatedMode(false);
         playerController.CanMove = true;
         isSitting = false;
+
+        HintDisplay.Instance?.Hide();
     }
 
     private IEnumerator SitDownRoutine()
     {
         if (seatedAnchor == null)
-        {
-            Debug.LogWarning("ChairInteractable: SeatedAnchor non assigné.", this);
             yield break;
-        }
 
         isAnimating = true;
         playerController.CanMove = false;
@@ -103,6 +101,8 @@ public class ChairInteractable : MonoBehaviour, IInteractable
         playerController.SetSeatedMode(true);
         isSitting = true;
         isAnimating = false;
+
+        HintDisplay.Instance?.ShowHint("[Echap] Se lever");
     }
 
     private void ResolvePlayerReferences()

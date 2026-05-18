@@ -3,11 +3,6 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-/// <summary>
-/// Manages the save-slot panel in the main menu.
-/// All UI elements are pre-built in the scene; this script only handles
-/// button clicks and refreshes the active-slot highlight.
-/// </summary>
 public class MainMenuSavePanel : MonoBehaviour
 {
     [Header("Slot 0 — Intro Jour 1")]
@@ -67,7 +62,6 @@ public class MainMenuSavePanel : MonoBehaviour
         SceneManager.LoadScene(gameSceneName);
     }
 
-    /// <summary>Updates button labels and background tints to reflect the currently active slot.</summary>
     private void Refresh()
     {
         int currentDay       = SaveSlotManager.GetCurrentDay();

@@ -3,10 +3,6 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// Retro-style button: glows amber on hover, dims on exit, sinks on click.
-/// Attach alongside a Button component.
-/// </summary>
 [RequireComponent(typeof(Button))]
 public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
 {

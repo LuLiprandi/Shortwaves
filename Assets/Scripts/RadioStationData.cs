@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 
-/// <summary>Data asset defining a radio station's frequency and decoding parameters.</summary>
 [CreateAssetMenu(fileName = "RadioStation", menuName = "Shortwaves/Radio Station")]
 public class RadioStationData : ScriptableObject
 {

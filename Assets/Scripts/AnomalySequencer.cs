@@ -3,15 +3,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-/// <summary>
-/// Orchestrates the anomaly sequence once the player validates the journal decode:
-///   1. Journal closes (handled by JournalManager before this is called).
-///   2. Radio plays the anomaly voice clip at 110 MHz.
-///   3. Screen flickers black and radio crackles.
-///   4. AnomalieJ1 sprite overlays the full screen.
-///   5. Player clicks to dismiss the overlay.
-///   6. Journal reopens on post-anomaly thoughts.
-/// </summary>
 public class AnomalySequencer : MonoBehaviour
 {
     [Header("Radio")]
@@ -52,7 +43,6 @@ public class AnomalySequencer : MonoBehaviour
     [Tooltip("Tint for the overlay background.")]
     [SerializeField] private Color overlayBackgroundColor = new Color(0f, 0f, 0f, 0.85f);
 
-    // Frequency range must match RadioSystem defaults
     private const float FrequencyMin = 88f;
     private const float FrequencyMax = 108f;
 
@@ -68,10 +58,6 @@ public class AnomalySequencer : MonoBehaviour
         interactionSystem = FindFirstObjectByType<InteractionSystem>();
     }
 
-    /// <summary>
-    /// Triggers the full anomaly sequence. Safe to call multiple times — runs only once per session.
-    /// Called by JournalManager after the journal is closed.
-    /// </summary>
     public void TriggerSequence()
     {
         if (sequencePlayed) return;
@@ -79,21 +65,16 @@ public class AnomalySequencer : MonoBehaviour
         StartCoroutine(AnomalyRoutine());
     }
 
-    // ── Sequence ──────────────────────────────────────────────────────────────
-
     private IEnumerator AnomalyRoutine()
     {
-        // Brief pause after journal closes
         yield return new WaitForSeconds(0.5f);
 
-        // ── Phase 1 : grésillo + clignotements avant le message ──────────────
         float flickerTotalDuration = flickerCount * (flickerOnDuration + flickerOffDuration);
         if (radioSystem != null)
             radioSystem.PlayStaticBurst(flickerTotalDuration, flickerStaticClip);
 
         yield return StartCoroutine(FlickerRoutine());
 
-        // ── Phase 2 : anomaly broadcast ───────────────────────────────────────
         float normalized = Mathf.InverseLerp(FrequencyMin, FrequencyMax, anomalyFrequencyMHz);
 
         if (radioSystem != null)
@@ -111,39 +92,30 @@ public class AnomalySequencer : MonoBehaviour
             yield return new WaitForSeconds(anomalyVoiceClip.length);
         }
 
-        // Hide the configured slots now that the message has been delivered
         if (slotsToHideAfterMessage != null && slotsToHideAfterMessage.Length > 0)
         {
             var panel = JournalManager.Instance?.GetJournalPanel();
             panel?.HideSlots(slotsToHideAfterMessage);
         }
 
-        // ── Phase 3 : grésillo + clignotements après le message ──────────────
         if (radioSystem != null)
             radioSystem.PlayStaticBurst(flickerTotalDuration, flickerStaticClip);
 
         yield return StartCoroutine(FlickerRoutine());
 
-        // ── Phase 3 : overlay image ───────────────────────────────────────────
         ShowOverlay();
         yield return new WaitUntil(() => overlayRoot == null || !overlayRoot.activeSelf);
 
-        // Release radio focus — ne pas locker : le joueur doit pouvoir réutiliser la radio au Jour 2.
         if (radioSystem != null)
             radioSystem.ReleaseAfterAnomaly();
         else
             RestorePlayerControl();
 
-        // ── Phase 4 : open journal on post-anomaly thoughts ───────────────────
-        // C'est seulement ici que l'anomalie est officiellement terminée :
-        // IsPostAnomaly passe à true, ce qui déverrouille l'accès au lit.
         GameStateManager.Instance?.TriggerAnomaly();
 
         yield return new WaitForSeconds(0.3f);
         JournalManager.Instance?.OpenOnPostAnomalyThoughts();
     }
-
-    // ── Flicker ───────────────────────────────────────────────────────────────
 
     private IEnumerator FlickerRoutine()
     {
@@ -159,19 +131,16 @@ public class AnomalySequencer : MonoBehaviour
         }
     }
 
-    // ── Overlay ───────────────────────────────────────────────────────────────
-
     private void ShowOverlay()
     {
         overlayRoot = new GameObject("AnomalieJ1_Overlay");
 
-        var canvas             = overlayRoot.AddComponent<Canvas>();
-        canvas.renderMode      = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder    = 100;
+        var canvas          = overlayRoot.AddComponent<Canvas>();
+        canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 100;
         overlayRoot.AddComponent<CanvasScaler>();
         overlayRoot.AddComponent<GraphicRaycaster>();
 
-        // Dark background
         var bgGO  = new GameObject("Background");
         bgGO.transform.SetParent(overlayRoot.transform, false);
         var bgRT  = bgGO.AddComponent<RectTransform>();
@@ -180,7 +149,6 @@ public class AnomalySequencer : MonoBehaviour
         bgRT.offsetMin = bgRT.offsetMax = Vector2.zero;
         bgGO.AddComponent<Image>().color = overlayBackgroundColor;
 
-        // AnomalieJ1 image — centered, preserve aspect
         if (anomalieJ1Sprite != null)
         {
             var imgGO  = new GameObject("AnomalieJ1");
@@ -190,14 +158,13 @@ public class AnomalySequencer : MonoBehaviour
             imgRT.anchorMax = new Vector2(0.9f, 0.9f);
             imgRT.offsetMin = imgRT.offsetMax = Vector2.zero;
             var img         = imgGO.AddComponent<Image>();
-            img.sprite          = anomalieJ1Sprite;
-            img.preserveAspect  = true;
+            img.sprite         = anomalieJ1Sprite;
+            img.preserveAspect = true;
         }
 
-        // Dismiss hint at the bottom of the screen
         var hintGO  = new GameObject("DismissHint");
         hintGO.transform.SetParent(overlayRoot.transform, false);
-        var hintRT  = hintGO.AddComponent<RectTransform>();
+        var hintRT              = hintGO.AddComponent<RectTransform>();
         hintRT.anchorMin        = new Vector2(0f, 0f);
         hintRT.anchorMax        = new Vector2(1f, 0f);
         hintRT.pivot            = new Vector2(0.5f, 0f);
@@ -209,7 +176,6 @@ public class AnomalySequencer : MonoBehaviour
         hintTxt.color     = new Color(1f, 1f, 1f, 0.65f);
         hintTxt.alignment = TMPro.TextAlignmentOptions.Center;
 
-        // Invisible fullscreen button — catches mouse click to dismiss
         var btnGO  = new GameObject("ClickDismiss");
         btnGO.transform.SetParent(overlayRoot.transform, false);
         var btnRT  = btnGO.AddComponent<RectTransform>();
@@ -222,7 +188,6 @@ public class AnomalySequencer : MonoBehaviour
         btn.targetGraphic = btnImg;
         btn.onClick.AddListener(DismissOverlay);
 
-        // Show cursor so the player can click
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
 
@@ -248,8 +213,6 @@ public class AnomalySequencer : MonoBehaviour
         overlayRoot.SetActive(false);
         Destroy(overlayRoot, 0.1f);
     }
-
-    // ── Fallback when radioSystem is null ─────────────────────────────────────
 
     private void RestorePlayerControl()
     {

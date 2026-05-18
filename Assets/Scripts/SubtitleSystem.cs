@@ -23,7 +23,6 @@ public class SubtitleSystem : MonoBehaviour
         SetText(string.Empty);
     }
 
-    /// <summary>Starts displaying subtitles synced to the given AudioSource playback time, using the Inspector-defined entries.</summary>
     public void Play(AudioSource audioSource)
     {
         if (activeRoutine != null)
@@ -32,7 +31,6 @@ public class SubtitleSystem : MonoBehaviour
         activeRoutine = StartCoroutine(SubtitleRoutine(audioSource, subtitles));
     }
 
-    /// <summary>Starts displaying subtitles synced to the given AudioSource, using the provided entries instead of the Inspector ones.</summary>
     public void Play(AudioSource audioSource, SubtitleEntry[] entries)
     {
         if (activeRoutine != null)
@@ -41,7 +39,6 @@ public class SubtitleSystem : MonoBehaviour
         activeRoutine = StartCoroutine(SubtitleRoutine(audioSource, entries));
     }
 
-    /// <summary>Stops all subtitles and clears the text.</summary>
     public void Stop()
     {
         if (activeRoutine != null)

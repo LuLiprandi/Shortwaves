@@ -3,7 +3,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-/// <summary>QTE gauge: the needle drifts left/right and the player uses Left/Right arrows to keep it in the green zone.</summary>
 public class RadioQTEGauge : MonoBehaviour
 {
     [Header("Aiguille")]
@@ -34,7 +33,7 @@ public class RadioQTEGauge : MonoBehaviour
     [Header("Indice contrôles")]
     [Tooltip("Label indiquant les touches au joueur pendant le QTE")]
     [SerializeField] private TMPro.TextMeshProUGUI controlsHintLabel;
-    private const string ControlsHintText = "← →  Maintenir dans la zone verte";
+    private const string ControlsHintText = "<size=150%>← →</size>  Maintenir dans la zone verte";
 
     [Header("Root UI")]
     [SerializeField] private GameObject gaugeRoot;
@@ -51,14 +50,12 @@ public class RadioQTEGauge : MonoBehaviour
 
     private const float FailZoneHalfSize = 0.95f;
 
-    /// <summary>Shows or hides the gauge UI.</summary>
     public void SetVisible(bool visible)
     {
         if (gaugeRoot != null)
             gaugeRoot.SetActive(visible);
     }
 
-    /// <summary>Starts the QTE with the given success duration.</summary>
     public void StartQTE(float duration)
     {
         successDuration = duration;
@@ -75,7 +72,6 @@ public class RadioQTEGauge : MonoBehaviour
         UpdateProgressBar(0f);
     }
 
-    /// <summary>Stops and resets the QTE.</summary>
     public void StopQTE()
     {
         isRunning = false;
@@ -98,11 +94,6 @@ public class RadioQTEGauge : MonoBehaviour
         CheckZones();
     }
 
-    /// <summary>
-    /// Pousse l'aiguille dans une direction depuis l'extérieur.
-    /// direction : -1 = gauche, +1 = droite, 0 = aucune pression.
-    /// Appelé par RadioSystem uniquement quand la radio est focalisée.
-    /// </summary>
     public void PushInput(float direction)
     {
         if (!isRunning) return;

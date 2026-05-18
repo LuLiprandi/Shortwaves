@@ -4,10 +4,6 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Disables the VNTG CRT renderer feature while the main menu is active,
-/// then re-enables it when transitioning to another scene.
-/// </summary>
 [RequireComponent(typeof(Camera))]
 public class MainMenuCameraSetup : MonoBehaviour
 {
@@ -35,14 +31,12 @@ public class MainMenuCameraSetup : MonoBehaviour
         RestoreCrt();
     }
 
-    /// <summary>Re-enables the CRT feature so other scenes are unaffected.</summary>
     private void RestoreCrt()
     {
         if (_crtFeature != null)
             _crtFeature.SetActive(true);
     }
 
-    /// <summary>Finds the CRTRendererFeature in the active URP pipeline via reflection.</summary>
     private static ScriptableRendererFeature FindCrtFeature()
     {
         var urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
