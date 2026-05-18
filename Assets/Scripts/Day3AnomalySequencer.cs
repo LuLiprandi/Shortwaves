@@ -23,9 +23,18 @@ namespace Shortwaves
         [Tooltip("RadioSystem piloté pendant la séquence.")]
         [SerializeField] private RadioSystem radioSystem;
 
+        [Tooltip("Séquenceur de fin du Jour 4, déclenché après l'affichage du titre.")]
+        [SerializeField] private Day4EndingSequencer day4EndingSequencer;
+
+        [Tooltip("Durée d'affichage du titre 'Jour 4' sur l'écran noir (secondes).")]
+        [SerializeField] private float day4TitleDuration = 2.5f;
+
         [Header("Audio Sources")]
         [Tooltip("AudioSource pour le grésillement violent et le chuchotement.")]
         [SerializeField] private AudioSource anomalySource;
+
+        [Tooltip("SubtitleSystem affiché pendant le chuchotement.")]
+        [SerializeField] private SubtitleSystem subtitleSystem;
 
         // ── État interne ──────────────────────────────────────────────────────
 
@@ -35,7 +44,7 @@ namespace Shortwaves
         private InteractionSystem     interactionSystem;
 
         // Plage de fréquences de la radio (doit correspondre à RadioSystem)
-        private const float FrequencyMin = 88f;
+        private const float FrequencyMin = 85f;
         private const float FrequencyMax = 108f;
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
@@ -80,6 +89,9 @@ namespace Shortwaves
 
             // Délai avant le fondu
             yield return new WaitForSeconds(data.DelayBeforeFade);
+
+            // Verrouiller définitivement la radio — plus d'interaction au Jour 4
+            radioSystem?.LockInteraction();
 
             // Phase 4 : fondu au noir puis passage au jour suivant
             yield return StartCoroutine(FadeAndAdvanceDay());
@@ -127,12 +139,20 @@ namespace Shortwaves
                 anomalySource.loop   = false;
                 anomalySource.volume = 0.85f;
                 anomalySource.PlayOneShot(data.SfxWhisperMessage);
+
+                // Lancer les sous-titres synchronisés si disponibles
+                if (subtitleSystem != null && data.WhisperSubtitles != null && data.WhisperSubtitles.Length > 0)
+                    subtitleSystem.Play(anomalySource, data.WhisperSubtitles);
+
                 yield return new WaitForSeconds(data.SfxWhisperMessage.length);
             }
             else
             {
                 yield return new WaitForSeconds(3f);
             }
+
+            // Nettoyer les sous-titres
+            subtitleSystem?.Stop();
         }
 
         // ── Phase 3 : Fondu + passage au jour suivant ─────────────────────────
@@ -146,15 +166,20 @@ namespace Shortwaves
             // Passage au Jour 4
             GameStateManager.Instance?.NextDay();
 
-            // Petite pause sous le noir — le joueur reste gelé, le monde se réinitialise
-            yield return new WaitForSeconds(1.5f);
+            // Afficher le titre "Jour 4" sur l'écran noir,
+            // puis déclencher BeginDay4() une fois le titre terminé.
+            // Day4EndingSequencer gère ensuite le FadeIn et l'ouverture du carnet.
+            bool titleDone = false;
+            ScreenFader.Instance?.ShowDayTitle(
+                GameStateManager.Instance?.CurrentDay ?? 4,
+                day4TitleDuration,
+                onComplete: () => titleDone = true);
 
-            // Fondu retour — le joueur reprend le contrôle
-            bool fadeInComplete = false;
-            ScreenFader.Instance?.FadeIn(data.FadeDuration * 0.6f, () => fadeInComplete = true);
-            yield return new WaitUntil(() => fadeInComplete || ScreenFader.Instance == null);
+            yield return new WaitUntil(() => titleDone || ScreenFader.Instance == null);
 
-            UnlockPlayer();
+            // Passer le relais — ne pas FadeIn ni UnlockPlayer ici
+            Debug.Log($"[Day3] Title done, calling BeginDay4. day4EndingSequencer={day4EndingSequencer}");
+            day4EndingSequencer?.BeginDay4();
         }
 
         // ── Utilitaires ───────────────────────────────────────────────────────

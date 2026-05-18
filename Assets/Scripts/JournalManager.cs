@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 /// <summary>
 /// Singleton that owns the journal panel lifecycle.
@@ -17,6 +18,7 @@ public class JournalManager : MonoBehaviour
     [SerializeField] private AnomalySequencer        anomalySequencer;
     [SerializeField] private Shortwaves.Day2AnomalySequencer day2AnomalySequencer;
     [SerializeField] private Shortwaves.Day3AnomalySequencer day3AnomalySequencer;
+    [SerializeField] private Shortwaves.Day4EndingSequencer  day4EndingSequencer;
 
     [Header("Jour 3 — données narratives (branching J2)")]
     [Tooltip("ScriptableObject Day3Data pour les pensées du matin branching selon le choix J2.")]
@@ -42,7 +44,10 @@ public class JournalManager : MonoBehaviour
         interactionSystem = FindFirstObjectByType<InteractionSystem>();
 
         if (GameStateManager.Instance != null)
+        {
             GameStateManager.Instance.OnAnomalyTriggered += HandleAnomalyTriggered;
+            GameStateManager.Instance.OnDayChanged       += HandleDayChanged;
+        }
 
         if (journalPanel != null)
         {
@@ -53,12 +58,20 @@ public class JournalManager : MonoBehaviour
             if (!GameStateManager.Instance.IsPostAnomaly)
                 journalPanel.ClearDecoderProgress(GameStateManager.Instance.CurrentDay);
         }
+
+        // Si on démarre directement au Jour 4 (slot de test ou persistance), lancer la fin
+        // après que ScreenFader ait terminé sa séquence de démarrage.
+        if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentDay == 4)
+            StartCoroutine(WaitForStartupThenBeginDay4());
     }
 
     private void OnDestroy()
     {
         if (GameStateManager.Instance != null)
+        {
             GameStateManager.Instance.OnAnomalyTriggered -= HandleAnomalyTriggered;
+            GameStateManager.Instance.OnDayChanged       -= HandleDayChanged;
+        }
 
         if (journalPanel != null)
             journalPanel.OnMessageDecoded -= HandleMessageDecoded;
@@ -172,12 +185,18 @@ public class JournalManager : MonoBehaviour
         journalPanel.Hide();
         GameStateManager.Instance.CloseBlockingUI();
 
-        if (playerController != null)
+        // Au Jour 4 le Day4EndingSequencer reprend le contrôle du joueur juste après.
+        // On ne libère pas le mouvement ici pour éviter un frame où le joueur peut bouger.
+        bool isDay4 = GameStateManager.Instance != null && GameStateManager.Instance.CurrentDay == 4;
+        if (!isDay4)
         {
-            playerController.CanMove = true;
-            playerController.CanLook = true;
+            if (playerController != null)
+            {
+                playerController.CanMove = true;
+                playerController.CanLook = true;
+            }
+            if (interactionSystem != null) interactionSystem.enabled = true;
         }
-        if (interactionSystem != null) interactionSystem.enabled = true;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible   = false;
@@ -223,6 +242,28 @@ public class JournalManager : MonoBehaviour
         if (!isOpen) return;
         var data = GetCurrentData();
         if (data != null) journalPanel.UpdateThoughts(data.PostAnomalyThoughts);
+    }
+
+    /// <summary>
+    /// Réabonnement aux événements de jour.
+    /// BeginDay4() est déclenché par Day3AnomalySequencer après le titre "Jour 4",
+    /// ou directement depuis Start() si la session démarre déjà au Jour 4.
+    /// </summary>
+    private void HandleDayChanged(int newDay) { }
+
+    /// <summary>
+    /// Attend la fin de la séquence de démarrage du ScreenFader (noir → titre → fondu),
+    /// puis déclenche BeginDay4() pour ne pas interférer avec le fondu initial.
+    /// skipFadeIn = true car la scène est déjà visible après la startup du ScreenFader.
+    /// </summary>
+    private System.Collections.IEnumerator WaitForStartupThenBeginDay4()
+    {
+        Debug.Log("[Day4] WaitForStartupThenBeginDay4 started");
+        yield return new WaitUntil(() =>
+            ScreenFader.Instance == null || ScreenFader.Instance.IsStartupComplete);
+
+        Debug.Log($"[Day4] Startup complete, calling BeginDay4(skipFadeIn:true). day4EndingSequencer={day4EndingSequencer}");
+        day4EndingSequencer?.BeginDay4(skipFadeIn: true);
     }
 
     /// <summary>Called when the player validates the correct decoded message in the journal.</summary>

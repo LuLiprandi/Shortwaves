@@ -31,7 +31,17 @@ MonoBehaviour:
     me fera du bien."
   OfficialMessageDecoded: mourir pour la patrie
   OfficialFrequencyMHz: 85
-  SfxWhisperMessage: {fileID: 8300000, guid: 77c44c84d1b935643be9f0181498c68f, type: 3}
+  SfxWhisperMessage: {fileID: 8300000, guid: a4529a5e6ab1a034c98aabbcf7428a23, type: 3}
+  WhisperSubtitles:
+  - startTime: 0
+    duration: 3
+    text: ILS....
+  - startTime: 3
+    duration: 3
+    text: ...M'ONT...
+  - startTime: 6
+    duration: 3
+    text: ...TUE...
   SfxRadioViolentStatic: {fileID: 8300000, guid: cabbb8e1e73c834448fe401367e43bb2, type: 3}
   WhisperFrequencyMHz: 75
   ViolentStaticDuration: 2.5

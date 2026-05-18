@@ -13,13 +13,14 @@ MonoBehaviour:
   m_Name: JournalDay03
   m_EditorClassIdentifier: 
   DayNumber: 3
-  PreAnomalyThoughts: 
+  PreAnomalyThoughts: "J'ai froid. Je n'arrive pas \xE0 me r\xE9chauffer depuis hier
+    soir..."
   PostAnomalyThoughts: 
   RadioVoiceClip: {fileID: 0}
   RadioSubtitles: []
-  CodeSequenceRaw: 53 57 94 58 6 58 / 50 57 94 58 / 7 4 3 58 6 1
-  HiddenSlotIndicesRaw: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+  CodeSequenceRaw: 53 57 94 58 6 58 50 57 94 58 7 4 50 4 3 58 6 1
+  HiddenSlotIndicesRaw: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
   OfficialMessageDecoded: mourir pour la patrie
-  AnomalyNote: "Apr\xE8s le d\xE9codage : la radio gr\xE9sille violemment, silence,
+  AnomalyNote: "Apr\xE8s le d\xE9codage : radio gr\xE9sille violemment, silence,
     chuchotement ILS M'ONT TU\xC9 sur fr\xE9quence fant\xF4me 75 MHz, fondu au noir,
     passage Jour 4."

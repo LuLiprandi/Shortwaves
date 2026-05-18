@@ -22,11 +22,11 @@ MonoBehaviour:
   ClueText: 
   Subtitles:
   - startTime: 0
-    duration: 7
+    duration: 9
     text: '8 - 1 - 58 - 93 - 6 - 58 '
   - startTime: 7
-    duration: 2
+    duration: 4
     text: '1 - 8 - 3 '
   - startTime: 9
-    duration: 10
+    duration: 13
     text: '94 - 0- 21 - 57 - 0 - 0 - 1 - 94 - 58 '

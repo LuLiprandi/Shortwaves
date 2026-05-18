@@ -163,9 +163,6 @@ namespace Shortwaves
                 playerController.CanLook = true;
             }
 
-            // Désactiver définitivement l'interaction radio après l'anomalie
-            radioSystem?.LockInteraction();
-
             // Marquer l'anomalie comme terminée — déverrouille l'accès au lit
             GameStateManager.Instance?.TriggerAnomaly();
 

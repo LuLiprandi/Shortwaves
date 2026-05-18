@@ -9415,7 +9415,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f942f3facaece94884968bfc363b0dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  frequencyMin: 88
+  frequencyMin: 85
   frequencyMax: 108
   stations:
   - {fileID: 11400000, guid: aad3f20d4bd90174aa9e92729d8d70f6, type: 2}

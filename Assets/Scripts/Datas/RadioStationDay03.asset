@@ -16,19 +16,20 @@ MonoBehaviour:
   ProximityRangeMHz: 2.5
   LockRangeMHz: 0.8
   ProximityClip: {fileID: 8300000, guid: cabbb8e1e73c834448fe401367e43bb2, type: 3}
-  VoiceClip: {fileID: 8300000, guid: 0c82bf99e65c4fb4aa55a5e80cf75e95, type: 3}
+  VoiceClip: {fileID: 8300000, guid: 7c31cb1cdad58c745afd5785d26d6f85, type: 3}
   QTESuccessDuration: 8
   SolutionCode: 
-  ClueText: 
+  ClueText: mourir pour la patrie
   Subtitles:
   - startTime: 0
     duration: 11
-    text: ' 53 - 57 - 94 - 58 - 6 - 58'
+    text: 53 - 57 - 94 - 58 - 6 - 58
   - startTime: 12
     duration: 7
     text: 50 - 57 - 94 - 58
-  - startTime: 19
-    duration: 12
-    text: '7 - 4 - 3 - 58 - 6 - 1
-
-'
+  - startTime: 14
+    duration: 5
+    text: '7 - 4 '
+  - startTime: 17
+    duration: 9
+    text: 50 - 4 - 3 - 58 - 6 - 1

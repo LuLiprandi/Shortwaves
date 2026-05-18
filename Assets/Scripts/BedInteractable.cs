@@ -77,11 +77,20 @@ public class BedInteractable : MonoBehaviour, IInteractable
         if (fader != null)
             fader.ShowDayTitle(GameStateManager.Instance.CurrentDay, dayTitleDuration);
 
-        // Attendre que le titre soit affiché avant de faire le fondu de retour
+        // Attendre que le titre soit affiché
         float totalTitleDuration = dayTitleDuration + 1.2f; // display + fades internes
         yield return new WaitForSeconds(totalTitleDuration);
 
-        // Fondu depuis le noir
+        // Jour 4 : laisser Day4EndingSequencer gérer la suite (journal sur fond noir, etc.)
+        // On ne fait pas de FadeIn ici — BeginDay4() le fera au bon moment.
+        if (GameStateManager.Instance.CurrentDay == 4)
+        {
+            GameStateManager.Instance.EndCutscene();
+            isTransitioning = false;
+            yield break;
+        }
+
+        // Fondu depuis le noir pour les jours normaux
         if (fader != null)
         {
             bool done = false;

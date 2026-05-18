@@ -32,11 +32,18 @@ public class ScreenFader : MonoBehaviour
 
     private CanvasGroup canvasGroup;
     private TextMeshProUGUI dayTitleText;
+    private Image fadePanel;
 
     // Coroutines stockées séparément pour éviter StopAllCoroutines()
     private Coroutine fadeCoroutine;
     private Coroutine titleCoroutine;
     private Coroutine startupCoroutine;
+
+    /// <summary>
+    /// Vrai une fois que la séquence de démarrage (noir → titre → fondu) est terminée.
+    /// Permet aux autres systèmes d'attendre avant de déclencher leurs propres fondus.
+    /// </summary>
+    public bool IsStartupComplete { get; private set; }
 
     private const float DayTitleFadeDuration = 0.6f;
 
@@ -90,14 +97,34 @@ public class ScreenFader : MonoBehaviour
         canvasGroup.blocksRaycasts = false;
     }
 
+    /// <summary>Fondu vers le blanc (alpha 0 → 1 sur un overlay blanc).</summary>
+    public void FadeToWhite(float duration = -1f, Action onComplete = null)
+    {
+        StopActiveCoroutines();
+        SetPanelColor(Color.white);
+        fadeCoroutine = StartCoroutine(FadeRoutine(0f, 1f, duration < 0f ? defaultDuration : duration, () =>
+        {
+            SetPanelColor(Color.black); // remettre en noir pour les prochains fondus
+            onComplete?.Invoke();
+        }));
+    }
+
+    /// <summary>Change la couleur du panneau de fondu (noir par défaut).</summary>
+    public void SetPanelColor(Color color)
+    {
+        if (fadePanel != null)
+            fadePanel.color = color;
+    }
+
     /// <summary>
     /// Affiche "Jour N" centré sur le fond noir pendant <paramref name="displayDuration"/> secondes.
     /// Le texte apparaît et disparaît en fondu. Doit être appelé pendant que l'écran est déjà noir.
+    /// <paramref name="onComplete"/> est invoqué une fois que le texte a fini de disparaître.
     /// </summary>
-    public void ShowDayTitle(int day, float displayDuration = 2f)
+    public void ShowDayTitle(int day, float displayDuration = 2f, Action onComplete = null)
     {
         if (titleCoroutine != null) StopCoroutine(titleCoroutine);
-        titleCoroutine = StartCoroutine(DayTitleRoutine(day, displayDuration));
+        titleCoroutine = StartCoroutine(DayTitleRoutine(day, displayDuration, onComplete));
     }
 
     // ── Interne ───────────────────────────────────────────────────────────────
@@ -140,6 +167,7 @@ public class ScreenFader : MonoBehaviour
         yield return StartCoroutine(FadeRoutine(1f, 0f, initialFadeInDuration, null));
 
         startupCoroutine = null;
+        IsStartupComplete = true;
     }
 
     private IEnumerator FadeRoutine(float from, float to, float duration, Action onComplete)
@@ -161,7 +189,7 @@ public class ScreenFader : MonoBehaviour
         onComplete?.Invoke();
     }
 
-    private IEnumerator DayTitleRoutine(int day, float displayDuration)
+    private IEnumerator DayTitleRoutine(int day, float displayDuration, Action onComplete = null)
     {
         dayTitleText.text = $"Jour {day}";
 
@@ -192,6 +220,8 @@ public class ScreenFader : MonoBehaviour
         }
         c.a = 0f;
         dayTitleText.color = c;
+
+        onComplete?.Invoke();
     }
 
     private void BuildOverlay()
@@ -219,6 +249,7 @@ public class ScreenFader : MonoBehaviour
         var img           = panelGO.AddComponent<Image>();
         img.color         = Color.black;
         img.raycastTarget = true;
+        fadePanel         = img;
 
         canvasGroup                = gameObject.AddComponent<CanvasGroup>();
         canvasGroup.interactable   = false;

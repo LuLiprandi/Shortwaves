@@ -43,6 +43,12 @@ public static class SaveSlotManager
             description: "Jour 2 en cours. L'anomalie radio peut être déclenchée depuis le journal.",
             day:         2
         ),
+        new SaveSnapshot(
+            label:       "Jour 3 — Le Sacrifice",
+            description: "Jour 3 en cours. Porte ouverte au Jour 2. L'anomalie du chuchotement est disponible.",
+            day:         3,
+            day2Choice:  1
+        ),
     };
 
     // ── API ───────────────────────────────────────────────────────────────────

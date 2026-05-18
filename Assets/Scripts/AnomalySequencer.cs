@@ -128,12 +128,9 @@ public class AnomalySequencer : MonoBehaviour
         ShowOverlay();
         yield return new WaitUntil(() => overlayRoot == null || !overlayRoot.activeSelf);
 
-        // Release radio focus
+        // Release radio focus — ne pas locker : le joueur doit pouvoir réutiliser la radio au Jour 2.
         if (radioSystem != null)
-        {
             radioSystem.ReleaseAfterAnomaly();
-            radioSystem.LockInteraction();
-        }
         else
             RestorePlayerControl();
 

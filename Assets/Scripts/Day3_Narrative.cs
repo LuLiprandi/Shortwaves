@@ -49,6 +49,9 @@ namespace Shortwaves
         [Tooltip("Clip audio du message chuchoté : « ILS M'ONT TUÉ ». Grésillement + voix basse.")]
         public AudioClip SfxWhisperMessage;
 
+        [Tooltip("Sous-titres affichés pendant le clip chuchoté. Synchronisés à audioSource.time.")]
+        public SubtitleEntry[] WhisperSubtitles = System.Array.Empty<SubtitleEntry>();
+
         [Tooltip("Clip audio du grésillement violent de la radio avant le silence.")]
         public AudioClip SfxRadioViolentStatic;
 
