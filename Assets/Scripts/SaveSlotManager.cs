@@ -65,6 +65,11 @@ public static class SaveSlotManager
         PlayerPrefs.SetInt(PrefDay,        snapshot.Day);
         PlayerPrefs.SetInt(PrefDay2Choice, snapshot.Day2Choice);
         PlayerPrefs.Save();
+
+        // Si le GameStateManager existe déjà en scène (DontDestroyOnLoad),
+        // on force la relecture des PlayerPrefs pour que CurrentDay soit immédiatement
+        // à jour — notamment pour RadioSystem.Start() qui lit le jour au chargement.
+        GameStateManager.Instance?.ReloadState();
     }
 
     public static void ResetAll()

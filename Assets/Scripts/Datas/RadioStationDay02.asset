@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f3828b85690f9340942afc16339c2cf, type: 3}
   m_Name: RadioStationDay02
   m_EditorClassIdentifier: 
-  FrequencyMHz: 103
+  FrequencyMHz: 102
   ProximityRangeMHz: 2.5
   LockRangeMHz: 0.8
   ProximityClip: {fileID: 8300000, guid: cabbb8e1e73c834448fe401367e43bb2, type: 3}

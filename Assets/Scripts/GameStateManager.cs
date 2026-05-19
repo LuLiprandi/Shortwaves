@@ -106,6 +106,17 @@ public class GameStateManager : MonoBehaviour
         IsPostAnomaly = false;
     }
 
+    /// <summary>
+    /// Reloads the game state from PlayerPrefs and fires OnDayChanged so all
+    /// listeners (RadioSystem, etc.) refresh their day-dependent data.
+    /// Call this after writing a new save slot via SaveSlotManager.Apply().
+    /// </summary>
+    public void ReloadState()
+    {
+        LoadState();
+        OnDayChanged?.Invoke(CurrentDay);
+    }
+
 #if UNITY_EDITOR
     private void OnGUI()
     {

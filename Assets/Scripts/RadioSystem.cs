@@ -44,6 +44,20 @@ public class RadioSystem : MonoBehaviour
     private void Start()
     {
         ApplyDayStation();
+
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnDayChanged += OnDayChanged;
+    }
+
+    private void OnDestroy()
+    {
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnDayChanged -= OnDayChanged;
+    }
+
+    private void OnDayChanged(int _)
+    {
+        ApplyDayStation();
     }
 
     private void ApplyDayStation()
@@ -174,7 +188,7 @@ public class RadioSystem : MonoBehaviour
         frequencyVisualizer.ShowQTEAlert();
 
         if (focusController != null)
-            focusController.EscapeInterceptor = () => { ExitQTE(); return true; };
+            focusController.EscapeInterceptor = () => { ExitQTE(); ExitFocusAndDeactivate(); return true; };
     }
 
     private void ExitQTE()
@@ -195,6 +209,14 @@ public class RadioSystem : MonoBehaviour
         State = RadioState.Decoded;
         qteGauge.SetVisible(false);
         frequencyVisualizer.HideQTEAlert();
+
+        // Nettoyer le QTE proprement avant de verrouiller l'échap
+        qteGauge.StopQTE();
+        qteGauge.OnSuccess -= HandleQTESuccess;
+        qteGauge.OnFail    -= HandleQTEFail;
+
+        if (focusController != null)
+            focusController.EscapeInterceptor = null;
 
         StopDecoding();
 
@@ -217,9 +239,6 @@ public class RadioSystem : MonoBehaviour
 
         JournalManager.Instance?.GetJournalPanel()?.UnlockDecoder();
 
-        if (focusController != null)
-            focusController.LockEscape = true;
-
         JournalManager.Instance?.OpenOnDecoderTab();
     }
 
@@ -240,6 +259,12 @@ public class RadioSystem : MonoBehaviour
 
     public void LockInteraction()
     {
+        if (focusController != null)
+        {
+            focusController.LockEscape        = false;
+            focusController.EscapeInterceptor = null;
+        }
+
         SetActive(false);
         radioInspectable?.Lock();
     }
